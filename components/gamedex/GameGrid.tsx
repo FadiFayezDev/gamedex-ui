@@ -11,9 +11,10 @@ type GameGridProps = {
   games: Game[]
   view: ViewMode
   onAddClick: () => void
+  onUpdateGame: (updated: Partial<Game> & { id: string }) => void
 }
 
-export function GameGrid({ games, view, onAddClick }: GameGridProps) {
+export function GameGrid({ games, view, onAddClick, onUpdateGame }: GameGridProps) {
   return (
     <section
       aria-label="Game Gallery"
@@ -25,7 +26,7 @@ export function GameGrid({ games, view, onAddClick }: GameGridProps) {
       )}
     >
       {games.map((game) => (
-        <GameCard key={game.id} game={game} view={view} />
+        <GameCard key={game.id} game={game} view={view} onUpdateGame={onUpdateGame} />
       ))}
 
       {view === "grid" && (

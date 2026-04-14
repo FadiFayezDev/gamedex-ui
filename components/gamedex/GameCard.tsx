@@ -13,9 +13,10 @@ import { Star, DollarSign } from "lucide-react"
 type GameCardProps = {
   game: Game
   view: ViewMode
+  onUpdateGame: (updated: Partial<Game> & { id: string }) => void
 }
 
-export function GameCard({ game, view }: GameCardProps) {
+export function GameCard({ game, view, onUpdateGame }: GameCardProps) {
   const isList = view === "list"
   const [sheetOpen, setSheetOpen] = React.useState(false)
   const [imgError, setImgError] = useState(false)
@@ -29,8 +30,10 @@ export function GameCard({ game, view }: GameCardProps) {
   const displayRating = game.userRating ?? game.rating ?? game.criticRating ?? 0
   const hasRating = displayRating > 0
 
-  // The cover exists if we have a URL/Path, or if it was previously set
-  const hasCover = !!game.coverUrl && !imgError
+  // Try to show the cover by default. If it fails, onError will set imgError to true.
+  // This allows the image to appear immediately even if the coverUrl field in the database 
+  // hasn't been updated yet (but the file is already on the server).
+  const hasCover = !imgError
 
   return (
     <>
@@ -115,6 +118,20 @@ export function GameCard({ game, view }: GameCardProps) {
         coverUrl={game.coverUrl ?? undefined}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
+        onUpdate={(updated) => {
+          onUpdateGame({
+            id: updated.id,
+            title: updated.title,
+            coverUrl: updated.coverUrl,
+            priceAmount: updated.priceAmount,
+            priceCurrency: updated.priceCurrency,
+            userRating: updated.userRating,
+            criticRating: updated.criticRating,
+            rating: updated.rating,
+            isFavorite: updated.isFavorite,
+            isPlayed: updated.isPlayed,
+          })
+        }}
       />
     </>
   )

@@ -127,9 +127,19 @@ export function LibraryPage() {
   }, [games, filters])
 
   const handleCreateGame = async (input: AddGameInput) => {
-    const newGame = await createGame(input)
-    setGames((prev) => [newGame, ...prev])
+    try {
+      const newGame = await createGame(input)
+      setGames((prev) => [newGame, ...prev])
+    } catch (error) {
+      console.error("Failed to create game:", error)
+    }
   }
+
+  const handleUpdateGame = React.useCallback((updatedFields: Partial<Game> & { id: string }) => {
+    setGames((prev) =>
+      prev.map((g) => (g.id === updatedFields.id ? { ...g, ...updatedFields } : g))
+    )
+  }, [])
 
 
 
@@ -171,6 +181,7 @@ export function LibraryPage() {
                 games={filteredGames}
                 view={viewMode}
                 onAddClick={() => setIsSheetOpen(true)}
+                onUpdateGame={handleUpdateGame}
               />
             </div>
           </div>

@@ -40,22 +40,26 @@ const makeId = () =>
   globalThis.crypto?.randomUUID?.() ??
   `game-${Math.random().toString(36).slice(2, 10)}`
 
-const toGame = (apiGame: z.infer<typeof ApiGameSchema>): Game =>
-  GameSchema.parse({
-    id: apiGame.id ?? makeId(),
-    title: apiGame.title ?? apiGame.name ?? "Untitled Game",
-    coverUrl: apiGame.coverUrl || apiGame.cover || null,
-    priceAmount: apiGame.priceAmount ?? null,
-    priceCurrency: apiGame.priceCurrency ?? null,
-    installSizeGb: apiGame.installSizeGb ?? null,
-    genreIds: apiGame.genreIds ?? [],
-    platformId: apiGame.platformId ?? null,
-    rating: apiGame.rating ?? null,
-    criticRating: apiGame.criticRating ?? null,
-    userRating: apiGame.userRating ?? null,
-    isFavorite: apiGame.isFavorite ?? false,
-    isPlayed: apiGame.isPlayed ?? false,
+const toGame = (apiGame: any): Game => {
+  const getString = (v: any) => (typeof v === "string" ? v : undefined)
+  const getNumber = (v: any) => (typeof v === "number" ? v : undefined)
+
+  return GameSchema.parse({
+    id: apiGame.id ?? apiGame.Id ?? makeId(),
+    title: getString(apiGame.title) ?? getString(apiGame.Title) ?? getString(apiGame.name) ?? getString(apiGame.Name) ?? "Untitled Game",
+    coverUrl: getString(apiGame.coverUrl) ?? getString(apiGame.CoverUrl) ?? getString(apiGame.cover) ?? getString(apiGame.Cover) ?? null,
+    priceAmount: getNumber(apiGame.priceAmount) ?? getNumber(apiGame.PriceAmount) ?? getNumber(apiGame.price) ?? getNumber(apiGame.Price) ?? getNumber(apiGame.amount) ?? getNumber(apiGame.Amount) ?? null,
+    priceCurrency: getString(apiGame.priceCurrency) ?? getString(apiGame.PriceCurrency) ?? getString(apiGame.currency) ?? getString(apiGame.Currency) ?? null,
+    installSizeGb: getNumber(apiGame.installSizeGb) ?? getNumber(apiGame.InstallSizeGb) ?? getNumber(apiGame.installSize) ?? getNumber(apiGame.InstallSize) ?? null,
+    genreIds: Array.isArray(apiGame.genreIds) ? apiGame.genreIds : (Array.isArray(apiGame.GenreIds) ? apiGame.GenreIds : []),
+    platformId: getString(apiGame.platformId) ?? getString(apiGame.PlatformId) ?? getString(apiGame.platform?.id) ?? getString(apiGame.Platform?.Id) ?? null,
+    rating: getNumber(apiGame.rating) ?? getNumber(apiGame.Rating) ?? null,
+    criticRating: getNumber(apiGame.criticRating) ?? getNumber(apiGame.CriticRating) ?? null,
+    userRating: getNumber(apiGame.userRating) ?? getNumber(apiGame.UserRating) ?? null,
+    isFavorite: !!(apiGame.isFavorite ?? apiGame.IsFavorite ?? false),
+    isPlayed: !!(apiGame.isPlayed ?? apiGame.IsPlayed ?? false),
   })
+}
 //#endregion
 
 //#region Core Game Services (CRUD)
@@ -82,8 +86,8 @@ export async function createGame(input: AddGameInput) {
   if (input.description) formData.append("Description", input.description)
   if (input.releaseDate) formData.append("ReleaseDate", input.releaseDate)
   formData.append("AgeRating", String(input.ageRating ?? 0))
-  formData.append("Price", String(input.price))
-  formData.append("Currency", input.currency)
+  if (input.price !== undefined) formData.append("Price", String(input.price))
+  if (input.currency) formData.append("Currency", input.currency)
   if (input.cover) formData.append("Cover", input.cover)
 
   const data = await request(
@@ -91,7 +95,17 @@ export async function createGame(input: AddGameInput) {
     { method: "POST", body: formData },
     ApiGameResponse
   )
-  return data ? toGame(data) : toGame({ id: makeId(), title: input.title })
+  
+  // Merge server response with user input to ensure we don't lose data
+  // if the server returns a partial object (like just the Id).
+  const mergedData = {
+    ...input,
+    // AddGameInput uses 'price', toGame handles 'price' or 'priceAmount'
+    // AddGameInput uses 'currency', toGame handles 'currency' or 'priceCurrency'
+    ...(data || {})
+  }
+
+  return toGame(mergedData)
 }
 
 export async function deleteGame(id: string) {

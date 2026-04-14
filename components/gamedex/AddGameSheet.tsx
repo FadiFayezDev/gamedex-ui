@@ -78,16 +78,21 @@ type CoverUploadProps = {
 }
 
 function CoverUpload({ file, onChange }: CoverUploadProps) {
-  const previewUrl = React.useMemo(
-    () => (file ? URL.createObjectURL(file) : null),
-    [file]
-  )
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null)
 
   React.useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    if (!file) {
+      setPreviewUrl(null)
+      return
     }
-  }, [previewUrl])
+
+    const url = URL.createObjectURL(file)
+    setPreviewUrl(url)
+
+    return () => {
+      URL.revokeObjectURL(url)
+    }
+  }, [file])
 
   return (
     <div className="space-y-4">
