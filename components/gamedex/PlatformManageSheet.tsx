@@ -180,10 +180,12 @@ function PlatformRow({ platform, onDelete, onRename }: PlatformRowProps) {
 type AddFormProps = {
   onAdd: (name: string) => Promise<void>
   onCancel: () => void
+  existingNames: string[]
 }
 
-function AddPlatformForm({ onAdd, onCancel }: AddFormProps) {
+function AddPlatformForm({ onAdd, onCancel, existingNames }: AddFormProps) {
   const [value, setValue] = useState("")
+  const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -194,7 +196,14 @@ function AddPlatformForm({ onAdd, onCancel }: AddFormProps) {
   async function handleSubmit() {
     const trimmed = value.trim()
     if (!trimmed) return
+
+    if (existingNames.some((n) => n.toLowerCase() === trimmed.toLowerCase())) {
+      setError("This platform already exists")
+      return
+    }
+
     setSaving(true)
+    setError("")
     try {
       await onAdd(trimmed)
       setValue("")
@@ -209,44 +218,54 @@ function AddPlatformForm({ onAdd, onCancel }: AddFormProps) {
   }
 
   return (
-    <div className="mb-3 flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 px-2 py-1.5">
-      <Input
-        ref={inputRef}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        disabled={saving}
-        placeholder="Platform name…"
-        className="h-6 border-0 bg-transparent px-0 text-xs text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-0"
-      />
-      <div className="flex shrink-0 items-center gap-1">
-        {saving ? (
-          <Loader2 className="h-3 w-3 animate-spin text-zinc-500" />
-        ) : (
-          <>
-            <button
-              onClick={handleSubmit}
-              disabled={!value.trim()}
-              className={cn(
-                "rounded p-0.5 transition-colors",
-                value.trim()
-                  ? "text-zinc-300 hover:text-emerald-400"
-                  : "cursor-not-allowed text-zinc-700"
-              )}
-              aria-label="Add platform"
-            >
-              <Check className="h-3 w-3" />
-            </button>
-            <button
-              onClick={onCancel}
-              className="rounded p-0.5 text-zinc-600 transition-colors hover:text-zinc-300"
-              aria-label="Cancel"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </>
-        )}
+    <div className="mb-3 space-y-2">
+      <div className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 px-2 py-1.5 focus-within:border-zinc-700">
+        <Input
+          ref={inputRef}
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value)
+            if (error) setError("")
+          }}
+          onKeyDown={handleKeyDown}
+          disabled={saving}
+          placeholder="Platform name…"
+          className="h-6 border-0 bg-transparent px-0 text-xs text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-0"
+        />
+        <div className="flex shrink-0 items-center gap-1">
+          {saving ? (
+            <Loader2 className="h-3 w-3 animate-spin text-zinc-500" />
+          ) : (
+            <>
+              <button
+                onClick={handleSubmit}
+                disabled={!value.trim()}
+                className={cn(
+                  "rounded p-0.5 transition-colors",
+                  value.trim()
+                    ? "text-zinc-300 hover:text-emerald-400"
+                    : "cursor-not-allowed text-zinc-700"
+                )}
+                aria-label="Add platform"
+              >
+                <Check className="h-3 w-3" />
+              </button>
+              <button
+                onClick={onCancel}
+                className="rounded p-0.5 text-zinc-600 transition-colors hover:text-zinc-300"
+                aria-label="Cancel"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </>
+          )}
+        </div>
       </div>
+      {error && (
+        <p className="px-2 text-[10px] font-medium text-red-500 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </p>
+      )}
     </div>
   )
 }
@@ -357,6 +376,7 @@ export default function PlatformManageSheet({
             <AddPlatformForm
               onAdd={handleAdd}
               onCancel={() => setShowAddForm(false)}
+              existingNames={platforms.map((p) => p.name)}
             />
           )}
 
