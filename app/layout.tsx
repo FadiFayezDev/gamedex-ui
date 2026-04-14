@@ -3,6 +3,8 @@ import { Geist, Geist_Mono, Merriweather } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
+import { SettingsProvider } from "@/components/contexts/SettingsContext"
+import { ToastProvider } from "@/components/contexts/ToastContext"
 
 const merriweather = Merriweather({subsets:['latin'],variable:'--font-serif'});
 
@@ -35,7 +37,9 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
-          {children}
+          <SettingsProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </SettingsProvider>
         </ThemeProvider>
       </body>
     </html>

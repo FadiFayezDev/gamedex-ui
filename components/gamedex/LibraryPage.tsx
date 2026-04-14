@@ -12,6 +12,7 @@ import { AddGameInput } from "@/lib/schemas/add-game"
 import { Game } from "@/lib/schemas/game"
 import { createGame } from "@/lib/services"
 import { FilterContext } from "../contexts/FilterContext"
+import { useToast } from "@/components/contexts/ToastContext"
 import GenreManageSheet from "./GenreManageSheet"
 import PlatformManageSheet from "./PlatformManageSheet"
 import CompanyManageSheet from "./CompanyManageSheet"
@@ -36,6 +37,7 @@ export function LibraryPage() {
   const [games, setGames] = React.useState<Game[]>([])
   const [filters, setFilters] = React.useState<LibraryFilters>(defaultFilters)
   const [viewMode, setViewMode] = React.useState<ViewMode>("grid")
+  const { toast } = useToast()
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
   const [genreSheetOpen, setGenreSheetOpen] = React.useState(false)
@@ -78,7 +80,7 @@ export function LibraryPage() {
   }, [games])
 
   const filteredGames = React.useMemo(() => {
-    return games.filter((game) => {
+    const result = games.filter((game) => {
       const query = filters.query.trim().toLowerCase()
       if (query && !game.title.toLowerCase().includes(query)) {
         return false
@@ -124,14 +126,35 @@ export function LibraryPage() {
 
       return true
     })
-  }, [games, filters])
+
+    // Sorting logic
+    const { sortBy } = filterModel
+    return [...result].sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.title.localeCompare(b.title)
+        case "priceLowerToHigher":
+          return (a.priceAmount ?? 0) - (b.priceAmount ?? 0)
+        case "priceHigherToLower":
+          return (b.priceAmount ?? 0) - (a.priceAmount ?? 0)
+        case "sizeLowerToHigher":
+          return (a.installSizeGb ?? 0) - (b.installSizeGb ?? 0)
+        case "sizeHigherToLower":
+          return (b.installSizeGb ?? 0) - (a.installSizeGb ?? 0)
+        default:
+          return 0
+      }
+    })
+  }, [games, filters, filterModel.sortBy])
 
   const handleCreateGame = async (input: AddGameInput) => {
     try {
       const newGame = await createGame(input)
       setGames((prev) => [newGame, ...prev])
+      toast("Game Added", "success", `"${input.title}" was successfully added.`)
     } catch (error) {
       console.error("Failed to create game:", error)
+      toast("Error", "error", "Failed to create new game.")
     }
   }
 
@@ -139,7 +162,8 @@ export function LibraryPage() {
     setGames((prev) =>
       prev.map((g) => (g.id === updatedFields.id ? { ...g, ...updatedFields } : g))
     )
-  }, [])
+    toast("Library Updated", "info")
+  }, [toast])
 
 
 

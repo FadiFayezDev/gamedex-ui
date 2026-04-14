@@ -6,6 +6,10 @@ import { ChevronDown, ChevronRight, SlidersHorizontal, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { FilterContext } from "@/components/contexts/FilterContext"
 import { useFilterModel } from "@/components/models/filterModel"
+import { useSettings } from "@/components/contexts/SettingsContext"
+import { motion } from "framer-motion"
+import { Bell, BellOff, Settings2 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 type Section = { key: string; title: string; items: string[] }
 
@@ -177,6 +181,7 @@ function CollapsibleSection({
 function SidebarFilters() {
   const { filterModel: contextFilterModel, setFilterModel, options } =
     useContext(FilterContext)
+  const { settings, updateSettings } = useSettings()
 
   const checkboxSections: Section[] = [
     { key: "genres", title: "Genres", items: options.genres.map(g => g.name) },
@@ -406,6 +411,45 @@ function SidebarFilters() {
               </div>
             </CollapsibleSection>
           ))}
+
+          <CollapsibleSection title="System Settings" defaultOpen={false}>
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between pr-2">
+                <div className="flex items-center gap-2">
+                  {settings.notificationsEnabled ? (
+                    <Bell className="h-3 w-3 text-emerald-500/70" />
+                  ) : (
+                    <BellOff className="h-3 w-3 text-zinc-600" />
+                  )}
+                  <span className="text-[11px] text-zinc-400">Notifications</span>
+                </div>
+                <button
+                  onClick={() =>
+                    updateSettings({
+                      notificationsEnabled: !settings.notificationsEnabled,
+                    })
+                  }
+                  className={cn(
+                    "relative h-4 w-8 rounded-full transition-colors duration-200",
+                    settings.notificationsEnabled
+                      ? "bg-emerald-500/20"
+                      : "bg-zinc-800"
+                  )}
+                >
+                  <motion.div
+                    animate={{ x: settings.notificationsEnabled ? 16 : 2 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    className={cn(
+                      "h-3 w-3 rounded-full shadow-sm",
+                      settings.notificationsEnabled
+                        ? "bg-emerald-500"
+                        : "bg-zinc-500"
+                    )}
+                  />
+                </button>
+              </div>
+            </div>
+          </CollapsibleSection>
         </div>
 
         {/* Footer */}

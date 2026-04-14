@@ -12,6 +12,7 @@ import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { cn } from "@/lib/utils"
 import { FilterContext } from "../contexts/FilterContext"
+import { useToast } from "@/components/contexts/ToastContext"
 
 type GenreManageSheetProps = {
   open: boolean
@@ -278,6 +279,7 @@ export default function GenreManageSheet({
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const { refreshOptions } = useContext(FilterContext)
+  const { toast } = useToast()
 
   useEffect(() => {
     if (!open) return
@@ -306,10 +308,12 @@ export default function GenreManageSheet({
         )
       )
       refreshOptions("genres")
+      toast("Genre Added", "success", `"${name}" is now available in your library.`)
     } catch {
       // Revert on failure and reopen the form
       setGenres((prev) => prev.filter((g) => g.id !== tempId))
       setShowAddForm(true)
+      toast("Failed to add genre", "error")
     }
   }
 
@@ -321,9 +325,13 @@ export default function GenreManageSheet({
     setGenres((prev) => prev.filter((g) => g.id !== id))
 
     deleteGenre(id)
-      .then(() => refreshOptions("genres"))
+      .then(() => {
+        refreshOptions("genres")
+        toast("Genre Deleted", "success")
+      })
       .catch(() => {
         setGenres(snapshot)
+        toast("Failed to delete genre", "error")
       })
   }
 
@@ -335,8 +343,10 @@ export default function GenreManageSheet({
     try {
       await updateGenre(id, { name })
       refreshOptions("genres")
+      toast("Genre Renamed", "success", `Updated to "${name}"`)
     } catch {
       setGenres(snapshot)
+      toast("Failed to rename genre", "error")
       throw new Error("Rename failed") // surface error back to GenreRow
     }
   }
