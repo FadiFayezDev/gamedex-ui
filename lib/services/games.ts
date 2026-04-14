@@ -4,6 +4,7 @@ import { GameDetails } from "@/components/models/gameCatalog/game"
 import { Game, GameSchema } from "@/lib/schemas/game"
 import { request } from "@/lib/services/http"
 import { ApiRoot } from "@/components/root/root"
+import { FilterModel } from "@/components/models/filterModel"
 
 //#region Schemas & Helpers
 const ApiGameSchema = z
@@ -11,12 +12,16 @@ const ApiGameSchema = z
     id: z.string().optional(),
     title: z.string().optional(),
     name: z.string().optional(),
-    coverUrl: z.string().url().optional().nullable(),
-    priceUsd: z.number().optional().nullable(),
+    coverUrl: z.string().optional().nullable(),
+    cover: z.string().optional().nullable(),
+    priceAmount: z.number().optional().nullable(),
+    priceCurrency: z.string().optional().nullable(),
     installSizeGb: z.number().optional().nullable(),
     genreIds: z.array(z.string()).optional(),
     platformId: z.string().optional().nullable(),
     rating: z.number().optional().nullable(),
+    criticRating: z.number().optional().nullable(),
+    userRating: z.number().optional().nullable(),
     isFavorite: z.boolean().optional(),
     isPlayed: z.boolean().optional(),
   })
@@ -39,12 +44,15 @@ const toGame = (apiGame: z.infer<typeof ApiGameSchema>): Game =>
   GameSchema.parse({
     id: apiGame.id ?? makeId(),
     title: apiGame.title ?? apiGame.name ?? "Untitled Game",
-    coverUrl: apiGame.coverUrl ?? null,
-    priceUsd: apiGame.priceUsd ?? null,
+    coverUrl: apiGame.coverUrl || apiGame.cover || null,
+    priceAmount: apiGame.priceAmount ?? null,
+    priceCurrency: apiGame.priceCurrency ?? null,
     installSizeGb: apiGame.installSizeGb ?? null,
     genreIds: apiGame.genreIds ?? [],
     platformId: apiGame.platformId ?? null,
     rating: apiGame.rating ?? null,
+    criticRating: apiGame.criticRating ?? null,
+    userRating: apiGame.userRating ?? null,
     isFavorite: apiGame.isFavorite ?? false,
     isPlayed: apiGame.isPlayed ?? false,
   })
@@ -74,6 +82,8 @@ export async function createGame(input: AddGameInput) {
   if (input.description) formData.append("Description", input.description)
   if (input.releaseDate) formData.append("ReleaseDate", input.releaseDate)
   formData.append("AgeRating", String(input.ageRating ?? 0))
+  formData.append("Price", String(input.price))
+  formData.append("Currency", input.currency)
   if (input.cover) formData.append("Cover", input.cover)
 
   const data = await request(
@@ -123,7 +133,10 @@ export async function setGameRatings(id: string, input: SetGameRatingsRequest) {
   )
 }
 
-export type SetGamePriceRequest = { amount?: number; currency?: string }
+export type SetGamePriceRequest = {
+  amount?: number | null
+  currency?: string | null
+}
 export async function setGamePrice(id: string, input: SetGamePriceRequest) {
   await request(
     `${ApiRoot}/api/v1/games/${id}/price`,
@@ -132,7 +145,7 @@ export async function setGamePrice(id: string, input: SetGamePriceRequest) {
   )
 }
 
-export type SetGameInstallSizeRequest = { installSizeBytes?: number }
+export type SetGameInstallSizeRequest = { installSizeBytes?: number | null }
 export async function setGameInstallSize(
   id: string,
   input: SetGameInstallSizeRequest
@@ -170,10 +183,7 @@ export async function addPerformanceProfile(id: string, input: any) {
   )
 }
 
-export async function deletePerformanceProfile(
-  id: string,
-  profileId: string
-) {
+export async function deletePerformanceProfile(id: string, profileId: string) {
   await request(
     `${ApiRoot}/api/v1/games/${id}/performance-profiles/${profileId}`,
     { method: "DELETE" },
@@ -266,14 +276,14 @@ export function getGameScreenshotUrl(id: string, screenshotName: string) {
 }
 
 export async function updateGameCover(id: string, file: File) {
-  const formData = new FormData();
-  formData.append("Cover", file); // الـ Key اللي الـ API مستنيه
-  
+  const formData = new FormData()
+  formData.append("Cover", file) // الـ Key اللي الـ API مستنيه
+
   await request(
     `${ApiRoot}/api/v1/games/${id}/media/cover`,
     { method: "PUT", body: formData },
     EmptyResponseSchema
-  );
+  )
 }
 
 export async function deleteGameCover(id: string) {
@@ -287,7 +297,7 @@ export async function deleteGameCover(id: string) {
 export async function uploadGameScreenshot(id: string, file: File) {
   const formData = new FormData()
   formData.append("Screenshot", file)
-  
+
   await request(
     `${ApiRoot}/api/v1/games/${id}/media/screenshots`,
     { method: "POST", body: formData },
@@ -315,7 +325,7 @@ export async function deleteScreenshot(id: string, screenshotName: string) {
 export async function uploadGameTrailer(id: string, file: File) {
   const formData = new FormData()
   formData.append("trailer", file)
-  
+
   await request(
     `${ApiRoot}/api/v1/games/${id}/media/trailer`,
     { method: "POST", body: formData },
@@ -336,7 +346,10 @@ export function getTrailerUrl(id: string) {
 }
 
 // Generic media assets (screenshots, videos, artwork stored by URL)
-export async function addMediaAsset(id: string, input: { type: number; file?: File }) {
+export async function addMediaAsset(
+  id: string,
+  input: { type: number; file?: File }
+) {
   await request(
     `${ApiRoot}/api/v1/games/${id}/media-assets`,
     { method: "POST", body: input },
@@ -350,5 +363,24 @@ export async function deleteMediaAsset(id: string, mediaAssetId: string) {
     { method: "DELETE" },
     EmptyResponseSchema
   )
+}
+//#endregion
+
+//#region
+export async function sendFilterData(filterData: FilterModel | null) {
+  if (!filterData) return [];
+
+  const data = await request(
+    `${ApiRoot}/api/v1/games/filters`,
+    { 
+      method: "POST", 
+      body: filterData, // ← مش JSON.stringify، خلّي request() تتعامل معاه
+    },
+    ApiGameListResponse
+  );
+
+  if (!data) return [];
+  const list = Array.isArray(data) ? data : data.items;
+  return list.map((item) => toGame(item));
 }
 //#endregion

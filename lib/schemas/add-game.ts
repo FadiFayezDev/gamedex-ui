@@ -22,16 +22,11 @@ export const AddGameSchema = z.object({
   description: z.string().optional(),
   releaseDate: z.preprocess(stringOrEmptyToUndefined, z.string().optional()),
   ageRating: z.preprocess(numberFromInput, z.nativeEnum(AgeRating).optional()),
-  genreId: z.string().min(1, "Genre is required."),
-  platformId: z.string().min(1, "Platform is required."),
-  priceUsd: z.preprocess(
+  price: z.preprocess(
     numberFromInput,
-    z.number().min(0, "Price must be 0 or higher.").optional()
+    z.number().min(0, "Price must be 0 or higher.")
   ),
-  rating: z.preprocess(
-    numberFromInput,
-    z.number().min(0).max(5, "Rating must be between 0 and 5.").optional()
-  ),
+  currency: z.string().min(1, "Currency is required.").default("USD"),
   cover: z.instanceof(File).optional(),
 })
 

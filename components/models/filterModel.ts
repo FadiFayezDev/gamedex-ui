@@ -1,10 +1,12 @@
-import { Genre } from "@/components/models/ecosystem/genre";
-import { Platform } from "@/components/models/ecosystem/platform";
+import { Genre } from "@/lib/schemas/game";
+import { Platform } from "@/lib/schemas/game";
 
 // models/filterModel.ts
 import { ApiRoot } from "@/components/root/root";
 import { useEffect, useState } from "react";
 import { Company } from "./ecosystem/Company";
+import { listModManagers, ModManager } from "@/lib/services/mod-managers";
+import { getGenre, listCompanies, listGenres, listPlatforms } from "@/lib/services";
 
 export type FilterModel = {
   checkboxes: Record<string, string[]>;
@@ -18,9 +20,10 @@ export type FilterModel = {
 // 👇 ده الـ static default
 export const defaultFilterModel: FilterModel = {
   checkboxes: {
-    genres: [], // placeholder لحد ما نجيبها من الـ API
+    genres: [],
     platforms: [],
     companies: [],
+    modManagers: [],
     tags: ["Multiplayer", "Single Player", "Controller Support"],
   },
   range: {
@@ -30,103 +33,76 @@ export const defaultFilterModel: FilterModel = {
   sortBy: "name",
 };
 
-// 👇 function بتجيب الـgenres من الـAPI
-export const fetchGenres = async (): Promise<string[]> => {
+// 👇 functions بتجيب البيانات من الـAPI (يرجع الـobjects كاملة)
+export const fetchGenresData = async (): Promise<Genre[]> => {
   try {
-    const res = await fetch(`${ApiRoot}/api/v1/genres`); // ✨ غيّر الـURL حسب API عندك
-    if (!res.ok) {
-      console.error("Error fetching genres:", await res.text());
-      return [];
-    }
-    const data = await res.json();
-    // لو API بيرجع array من objects اعمل map للـname
-    return data.map((g: Genre) => g.name ?? "");
+    return await listGenres();
   } catch (err) {
     console.error("Exception fetching genres:", err);
     return [];
   }
 };
 
-export const fetchPlatforms = async (): Promise<string[]> => {
+export const fetchPlatformsData = async (): Promise<Platform[]> => {
   try {
-    const res = await fetch(`${ApiRoot}/api/v1/platforms`); // ✨ غيّر الـURL حسب API عندك
-    if (!res.ok) {
-      console.error("Error fetching platforms:", await res.text());
-      return [];
-    }
-    const data = await res.json();
-    // لو API بيرجع array من objects اعمل map للـname
-    return data.map((g: Platform) => g.name ?? "");
+    return await listPlatforms();
   } catch (err) {
     console.error("Exception fetching platforms:", err);
     return [];
   }
 };
 
-export const fetchCompanies = async (): Promise<string[]> => {
+export const fetchCompaniesData = async (): Promise<Company[]> => {
   try {
-    const res = await fetch(`${ApiRoot}/api/v1/companies`); // ✨ غيّر الـURL حسب API عندك
-    if (!res.ok) {
-      console.error("Error fetching companies:", await res.text());
-      return [];
-    }
-    const data = await res.json();
-    // لو API بيرجع array من objects اعمل map للـname
-    return data.map((g: Company) => g.name ?? "");
+    return await listCompanies();
   } catch (err) {
     console.error("Exception fetching companies:", err);
     return [];
   }
 };
 
-// 👇 hook بيرجعلك الموديل مع الـgenres محملة
+export const fetchModManagersData = async (): Promise<ModManager[]> => {
+  try {
+    return await listModManagers();
+  } catch (err) {
+    console.error("Exception fetching mod managers:", err);
+    return [];
+  }
+};
+
+// 👇 hook بيرجعلك الموديل مع خيارات الفلتر محملة (مفيد لو لسه في حد بيستخدمه)
 export const useFilterModel = () => {
   const [filterModel, setFilterModel] = useState<FilterModel>(defaultFilterModel);
 
   useEffect(() => {
-    const loadGenres = async () => {
-      const genres = await fetchGenres();
+    const loadMetadata = async () => {
+      const [genres, platforms, companies, modManagers] = await Promise.all([
+        fetchGenresData(),
+        fetchPlatformsData(),
+        fetchCompaniesData(),
+        fetchModManagersData()
+      ]);
+
       setFilterModel((prev) => ({
         ...prev,
         checkboxes: {
           ...prev.checkboxes,
-          genres,
+          genres: genres.map(g => g.name),
+          platforms: platforms.map(p => p.name),
+          companies: companies.map(c => c.name),
+          modManagers: modManagers.map(m => m.name)
         },
       }));
     };
 
-    loadGenres();
-  }, []);
-
-  useEffect(() => {
-    const loadPlatforms = async () => {
-      const platforms = await fetchPlatforms();
-      setFilterModel((prev) => ({
-        ...prev,
-        checkboxes: {
-          ...prev.checkboxes,
-          platforms,
-        },
-      }));
-    };
-
-    loadPlatforms();
-  }, []);
-
-  useEffect(() => {
-    const loadCompanies = async () => {
-      const companies = await fetchCompanies();
-      setFilterModel((prev) => ({
-        ...prev,
-        checkboxes: {
-          ...prev.checkboxes,
-          companies,
-        },
-      }));
-    };
-
-    loadCompanies();
+    loadMetadata();
   }, []);
 
   return filterModel;
 };
+
+// بقية الدوال القديمة للتوافق (لو ضروري)
+export const fetchGenres = async () => (await fetchGenresData()).map(g => g.name);
+export const fetchPlatforms = async () => (await fetchPlatformsData()).map(p => p.name);
+export const fetchCompanies = async () => (await fetchCompaniesData()).map(c => c.name);
+export const fetchModManagers = async () => (await fetchModManagersData()).map(m => m.name);

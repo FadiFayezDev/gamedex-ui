@@ -9,18 +9,17 @@ import SidebarFilters from "@/components/gamedex/SidebarFilters"
 import { ViewToggle } from "@/components/gamedex/ViewToggle"
 import { LibraryFilters, ViewMode } from "@/components/gamedex/types"
 import { AddGameInput } from "@/lib/schemas/add-game"
-import { Game, Genre, Platform } from "@/lib/schemas/game"
-import {
-  createGame,
-  listGames,
-  listGenres,
-  listPlatforms,
-} from "@/lib/services"
-import { FilterContext, FilterProvider } from "../contexts/FilterContext"
-import { GameDetailSheet } from "./GameDetailSheet"
+import { Game } from "@/lib/schemas/game"
+import { createGame } from "@/lib/services"
+import { FilterContext } from "../contexts/FilterContext"
 import GenreManageSheet from "./GenreManageSheet"
 import PlatformManageSheet from "./PlatformManageSheet"
 import CompanyManageSheet from "./CompanyManageSheet"
+import ModManagerManageSheet from "./Modmanagermanagesheet"
+import { useContext, useEffect } from "react"
+import { sendFilterData } from "@/lib/services/games"
+import { PlaylistSelector } from "@/components/gamedex/PlaylistSelector"
+import { getPlaylist } from "@/lib/services/playlist"
 
 const defaultFilters: LibraryFilters = {
   query: "",
@@ -29,55 +28,44 @@ const defaultFilters: LibraryFilters = {
   genreIds: [],
   platformId: "all",
   minRating: 0,
+  playlistId: null,
 }
 
 export function LibraryPage() {
+  const { filterModel, options } = useContext(FilterContext)
   const [games, setGames] = React.useState<Game[]>([])
-  const [genres, setGenres] = React.useState<Genre[]>([])
-  const [platforms, setPlatforms] = React.useState<Platform[]>([])
   const [filters, setFilters] = React.useState<LibraryFilters>(defaultFilters)
   const [viewMode, setViewMode] = React.useState<ViewMode>("grid")
 
-  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-  const [genreSheetOpen, setGenreSheetOpen] = React.useState(false);
-  const [platformSheetOpen, setPlatformSheetOpen] = React.useState(false);
-  const [companiesSheetOpen, setCompaniesSheetOpen] = React.useState(false);
+  const [isSheetOpen, setIsSheetOpen] = React.useState(false)
+  const [genreSheetOpen, setGenreSheetOpen] = React.useState(false)
+  const [platformSheetOpen, setPlatformSheetOpen] = React.useState(false)
+  const [companiesSheetOpen, setCompaniesSheetOpen] = React.useState(false)
+  const [modManagerSheetOpen, setModManagerSheetOpen] = React.useState(false)
 
-
-  React.useEffect(() => {
-    let isActive = true
-
-    async function loadData() {
+  useEffect(() => {
+    const fetchGames = async () => {
       try {
-        const [gamesData, genreData, platformData] = await Promise.all([
-          listGames(),
-          listGenres(),
-          listPlatforms(),
-        ])
-
-        if (!isActive) {
-          return
+        if (filters.playlistId) {
+          // Load games from the selected playlist
+          const playlist = await getPlaylist(filters.playlistId)
+          // The games array from playlist is unknown[], we cast/map it to Game[]
+          // assuming the API returns game objects compatible with our schema
+          const playlistGames = (playlist.games ?? []) as Game[]
+          setGames(playlistGames)
+        } else {
+          // No playlist filter, load all games using filter model
+          const gamesData = await sendFilterData(filterModel)
+          setGames(gamesData)
         }
-
-        setGames(gamesData)
-        setGenres(genreData)
-        setPlatforms(platformData)
       } catch (error) {
-        if (!isActive) {
-          return
-        }
+        console.error("Failed to fetch games:", error)
         setGames([])
-        setGenres([])
-        setPlatforms([])
       }
     }
 
-    loadData()
-
-    return () => {
-      isActive = false
-    }
-  }, [])
+    fetchGames()
+  }, [filterModel, filters.playlistId])
 
   const stats = React.useMemo(() => {
     const favorites = games.filter((game) => game.isFavorite).length
@@ -96,7 +84,7 @@ export function LibraryPage() {
         return false
       }
 
-      const price = game.priceUsd ?? 0
+      const price = game.priceAmount ?? 0
       if (price > filters.priceMax) {
         return false
       }
@@ -143,48 +131,55 @@ export function LibraryPage() {
     setGames((prev) => [newGame, ...prev])
   }
 
+
+
   return (
     <div className="min-h-svh bg-[#09090b] text-zinc-100">
-      <FilterProvider>
-        <div className="flex h-svh overflow-hidden">
-          {/* Sidebar Filters */}
-          <SidebarFilters />
+      <div className="flex h-svh overflow-hidden">
+        {/* Sidebar Filters */}
+        <SidebarFilters />
 
-          {/* Main */}
-          <main className="flex h-full flex-1 flex-col overflow-hidden">
-            <LibraryHeader
-              stats={stats}
-              onAddClick={() => setIsSheetOpen(true)}
-              onGenresClick={() => setGenreSheetOpen(true)} // Placeholder for genre management
-              onPlatformsClick={() => setPlatformSheetOpen(true)} // Placeholder for platform management
-              onCompaniesClick={() => setCompaniesSheetOpen(true)} // Placeholder for company management
-            />
+        {/* Main */}
+        <main className="flex h-full flex-1 flex-col overflow-hidden">
+          <LibraryHeader
+            stats={stats}
+            onAddClick={() => setIsSheetOpen(true)}
+            onGenresClick={() => setGenreSheetOpen(true)} // Placeholder for genre management
+            onPlatformsClick={() => setPlatformSheetOpen(true)} // Placeholder for platform management
+            onCompaniesClick={() => setCompaniesSheetOpen(true)} // Placeholder for company management
+            onModManagerClick={() => setModManagerSheetOpen(true)} // Placeholder for mod manager management
+          />
 
-            <div className="flex-1 overflow-y-auto">
-              <div className="sticky z-10 flex items-center justify-between bg-[#09090b]/80 px-8 py-4 backdrop-blur-md">
+          <div className="flex-1 overflow-y-auto">
+            <div className="sticky z-10 flex items-center justify-between bg-[#09090b]/80 px-8 py-4 backdrop-blur-md">
+
+              <div className="flex gap-2 items-center">
                 <h2 className="text-sm font-medium text-zinc-400">
-                  Showing Entire Library
+                  Showing {filters.playlistId ? "Playlist" : "Entire Library"}
                 </h2>
-                <ViewToggle value={viewMode} onChange={setViewMode} />
-              </div>
-
-              <div className="px-8 pb-10">
-                <GameGrid
-                  games={filteredGames}
-                  view={viewMode}
-                  onAddClick={() => setIsSheetOpen(true)}
+                <PlaylistSelector
+                  selectedPlaylistId={filters.playlistId}
+                  onSelect={(id) => setFilters(prev => ({ ...prev, playlistId: id }))}
                 />
               </div>
+              <ViewToggle value={viewMode} onChange={setViewMode} />
             </div>
-          </main>
-        </div>
-      </FilterProvider>
+
+
+            <div className="px-8 pb-10">
+              <GameGrid
+                games={filteredGames}
+                view={viewMode}
+                onAddClick={() => setIsSheetOpen(true)}
+              />
+            </div>
+          </div>
+        </main>
+      </div>
 
       <AddGameSheet
         open={isSheetOpen}
         onOpenChange={setIsSheetOpen}
-        genres={genres}
-        platforms={platforms}
         onCreate={handleCreateGame}
       />
 
@@ -201,6 +196,11 @@ export function LibraryPage() {
       <CompanyManageSheet
         open={companiesSheetOpen} // Placeholder, should be controlled by state
         onOpenChange={setCompaniesSheetOpen} // Placeholder for company sheet control
+      />
+
+      <ModManagerManageSheet
+        open={modManagerSheetOpen}
+        onOpenChange={setModManagerSheetOpen}
       />
     </div>
   )

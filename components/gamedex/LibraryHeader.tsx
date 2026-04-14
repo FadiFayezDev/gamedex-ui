@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { LibraryStats } from "@/lib/schemas/game"
+import { Building2, Gamepad2, MonitorSmartphone, PackageSearch, Plus } from "lucide-react"
 
 type LibraryHeaderProps = {
   stats: LibraryStats
@@ -9,9 +10,10 @@ type LibraryHeaderProps = {
   onGenresClick: () => void
   onPlatformsClick?: () => void
   onCompaniesClick?: () => void
+  onModManagerClick?: () => void
 }
 
-export function LibraryHeader({ stats, onAddClick, onGenresClick, onPlatformsClick, onCompaniesClick }: LibraryHeaderProps) {
+export function LibraryHeader({ stats, onAddClick, onGenresClick, onPlatformsClick, onCompaniesClick, onModManagerClick }: LibraryHeaderProps) {
   return (
     <header className="p-8 pb-4 border-b border-zinc-800 flex flex-col md:flex-row md:items-end justify-between gap-6 bg-[#09090b]/80 backdrop-blur-md sticky top-0 z-20">
       <div className="space-y-4">
@@ -57,30 +59,39 @@ export function LibraryHeader({ stats, onAddClick, onGenresClick, onPlatformsCli
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <Button
-          className="text-xs font-bold bg-zinc-100 text-zinc-950 hover:bg-white"
-          onClick={onAddClick}
-        >
-          Add
-        </Button>
-        <Button
-          className="text-xs font-bold bg-zinc-100 text-zinc-950 hover:bg-white"
-          onClick={onGenresClick}
-        >
-          Genres
-        </Button>
-        <Button
-          className="text-xs font-bold bg-zinc-100 text-zinc-950 hover:bg-white"
-          onClick={onPlatformsClick}
-        >
-          Platforms
-        </Button>
-        <Button
-          className="text-xs font-bold bg-zinc-100 text-zinc-950 hover:bg-white"
-          onClick={onCompaniesClick}
-        >
-          Companies
-        </Button>
+    <Plus 
+    size={20} 
+    className="cursor-pointer text-zinc-400 transition-all duration-200 hover:text-white hover:scale-110" 
+    onClick={onAddClick}
+  />
+
+  {/* Genres Button */}
+  <Gamepad2 
+    size={20} 
+    className="cursor-pointer text-zinc-400 transition-all duration-200 hover:text-white hover:scale-110" 
+    onClick={onGenresClick}
+  />
+
+  {/* Platforms Button */}
+  <MonitorSmartphone 
+    size={20} 
+    className="cursor-pointer text-zinc-400 transition-all duration-200 hover:text-white hover:scale-110" 
+    onClick={onPlatformsClick}
+  />
+
+  {/* Companies Button */}
+  <Building2 
+    size={20} 
+    className="cursor-pointer text-zinc-400 transition-all duration-200 hover:text-white hover:scale-110" 
+    onClick={onCompaniesClick}
+  />
+
+  {/* Mod Manager Button */}
+  <PackageSearch 
+    size={20} 
+    className="cursor-pointer text-zinc-400 transition-all duration-200 hover:text-white hover:scale-110" 
+    onClick={onModManagerClick}
+  />
         <div className="ml-4 h-10 w-10 rounded-full border border-zinc-800 p-0.5 overflow-hidden">
           <img
             alt="User profile"

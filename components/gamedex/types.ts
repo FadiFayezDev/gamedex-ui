@@ -7,4 +7,5 @@ export type LibraryFilters = {
   genreIds: string[]
   platformId: string
   minRating: number
+  playlistId: string | null
 }

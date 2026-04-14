@@ -1,33 +1,37 @@
 import React, { useContext, useEffect, useRef, useState } from "react"
 import { Sheet, SheetContent } from "../ui/sheet"
 import {
-  createPlatform,
-  deletePlatform,
-  listPlatforms,
-  updatePlatformName,
-} from "@/lib/services/platforms"
-import { Platform } from "@/lib/schemas/game"
+  createModManager,
+  deleteModManager,
+  listModManagers,
+  ModManager,
+  updateModManager,
+} from "@/lib/services/mod-managers"
 import { Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { cn } from "@/lib/utils"
 import { FilterContext } from "../contexts/FilterContext"
 
-type PlatformManageSheetProps = {
+type ModManagerManageSheetProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
 // ─── Skeleton ──────────────────────────────────────────────────────────────────
 
-function PlatformSkeleton() {
+function ModManagerSkeleton() {
   return (
     <div className="space-y-1">
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="flex items-center gap-3 rounded-lg px-2 py-2">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="rounded-lg px-2 py-2">
           <div
             className="h-3 animate-pulse rounded bg-zinc-800"
-            style={{ width: `${60 + i * 18}px`, opacity: 1 - i * 0.15 }}
+            style={{ width: `${70 + i * 20}px`, opacity: 1 - i * 0.15 }}
+          />
+          <div
+            className="mt-1.5 h-2.5 animate-pulse rounded bg-zinc-800/60"
+            style={{ width: `${100 + i * 30}px`, opacity: 0.6 - i * 0.1 }}
           />
         </div>
       ))}
@@ -44,59 +48,73 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         <Plus className="h-4 w-4 text-zinc-500" />
       </div>
       <div>
-        <p className="text-sm font-medium text-zinc-300">No platforms yet</p>
+        <p className="text-sm font-medium text-zinc-300">No mod managers yet</p>
         <p className="mt-0.5 text-xs text-zinc-600">
-          Add your first platform to start organizing your library.
+          Add your first mod manager to start organizing your library.
         </p>
       </div>
       <button
         onClick={onAdd}
         className="mt-1 text-xs font-medium text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline"
       >
-        Add a platform
+        Add a mod manager
       </button>
     </div>
   )
 }
 
-// ─── Platform Row ──────────────────────────────────────────────────────────────
+// ─── Mod Manager Row ───────────────────────────────────────────────────────────
 
-type PlatformRowProps = {
-  platform: Platform
+type ModManagerRowProps = {
+  modManager: ModManager
   onDelete: (id: string) => void
-  onRename: (id: string, name: string) => Promise<void>
+  onEdit: (id: string, name: string, description?: string) => Promise<void>
 }
 
-function PlatformRow({ platform, onDelete, onRename }: PlatformRowProps) {
+function ModManagerRow({ modManager, onDelete, onEdit }: ModManagerRowProps) {
   const [editing, setEditing] = useState(false)
-  const [value, setValue] = useState(platform.name)
+  const [name, setName] = useState(modManager.name)
+  const [description, setDescription] = useState(modManager.description ?? "")
   const [saving, setSaving] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (!editing) setValue(platform.name)
-  }, [platform.name, editing])
+    if (!editing) {
+      setName(modManager.name)
+      setDescription(modManager.description ?? "")
+    }
+  }, [modManager, editing])
 
   function startEdit() {
     setEditing(true)
-    setValue(platform.name)
-    setTimeout(() => inputRef.current?.focus(), 0)
+    setName(modManager.name)
+    setDescription(modManager.description ?? "")
+    setTimeout(() => nameRef.current?.focus(), 0)
   }
 
   function cancelEdit() {
     setEditing(false)
-    setValue(platform.name)
+    setName(modManager.name)
+    setDescription(modManager.description ?? "")
   }
 
   async function commitEdit() {
-    const trimmed = value.trim()
-    if (!trimmed || trimmed === platform.name) {
+    const trimmedName = name.trim()
+    const trimmedDesc = description.trim()
+    if (!trimmedName) {
+      cancelEdit()
+      return
+    }
+    const unchanged =
+      trimmedName === modManager.name &&
+      trimmedDesc === (modManager.description ?? "")
+    if (unchanged) {
       cancelEdit()
       return
     }
     setSaving(true)
     try {
-      await onRename(platform.id, trimmed)
+      await onEdit(modManager.id, trimmedName, trimmedDesc || undefined)
       setEditing(false)
     } catch {
       cancelEdit()
@@ -106,23 +124,32 @@ function PlatformRow({ platform, onDelete, onRename }: PlatformRowProps) {
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") commitEdit()
+    if (e.key === "Enter" && !e.shiftKey) commitEdit()
     if (e.key === "Escape") cancelEdit()
   }
 
   return (
-    <div className="group flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-zinc-800/40">
+    <div className="group rounded-lg px-2 py-1.5 transition-colors hover:bg-zinc-800/40">
       {editing ? (
-        <>
+        <div className="flex flex-col gap-1.5">
           <Input
-            ref={inputRef}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
+            ref={nameRef}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={saving}
+            placeholder="Name"
             className="h-6 border-zinc-700 bg-zinc-900 px-2 text-xs text-zinc-100 focus-visible:ring-zinc-600"
           />
-          <div className="flex shrink-0 items-center gap-1">
+          <Input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={saving}
+            placeholder="Description (optional)"
+            className="h-6 border-zinc-700 bg-zinc-900 px-2 text-xs text-zinc-400 focus-visible:ring-zinc-600"
+          />
+          <div className="flex items-center gap-1 self-end">
             {saving ? (
               <Loader2 className="h-3 w-3 animate-spin text-zinc-500" />
             ) : (
@@ -144,96 +171,108 @@ function PlatformRow({ platform, onDelete, onRename }: PlatformRowProps) {
               </>
             )}
           </div>
-        </>
+        </div>
       ) : (
-        <>
-          <div className="flex flex-col">
-            <span className="text-xs text-zinc-200">{platform.name}</span>
-            <span className="text-[10px] text-zinc-500 pl-2">
-              Tes t platform description that is quite long to see how it looks when it overflows.
-            </span>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <div className="text-xs text-zinc-200">{modManager.name}</div>
+            {modManager.description && (
+              <div className="mt-0.5 text-[11px] leading-relaxed text-zinc-600">
+                {modManager.description}
+              </div>
+            )}
           </div>
           <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
             <button
               onClick={startEdit}
               className="rounded p-0.5 text-zinc-600 transition-colors hover:text-zinc-300"
-              aria-label={`Rename ${platform.name}`}
+              aria-label={`Edit ${modManager.name}`}
             >
               <Pencil className="h-3 w-3" />
             </button>
             <button
-              onClick={() => onDelete(platform.id)}
+              onClick={() => onDelete(modManager.id)}
               className="rounded p-0.5 text-zinc-600 transition-colors hover:text-red-400"
-              aria-label={`Delete ${platform.name}`}
+              aria-label={`Delete ${modManager.name}`}
             >
               <Trash2 className="h-3 w-3" />
             </button>
           </div>
-        </>
+        </div>
       )}
     </div>
   )
 }
 
-// ─── Add Platform Form ─────────────────────────────────────────────────────────
+// ─── Add Form ──────────────────────────────────────────────────────────────────
 
 type AddFormProps = {
-  onAdd: (name: string) => Promise<void>
+  onAdd: (name: string, description?: string) => Promise<void>
   onCancel: () => void
 }
 
-function AddPlatformForm({ onAdd, onCancel }: AddFormProps) {
-  const [value, setValue] = useState("")
+function AddModManagerForm({ onAdd, onCancel }: AddFormProps) {
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
   const [saving, setSaving] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    inputRef.current?.focus()
+    nameRef.current?.focus()
   }, [])
 
   async function handleSubmit() {
-    const trimmed = value.trim()
-    if (!trimmed) return
+    const trimmedName = name.trim()
+    if (!trimmedName) return
     setSaving(true)
     try {
-      await onAdd(trimmed)
-      setValue("")
+      await onAdd(trimmedName, description.trim() || undefined)
+      setName("")
+      setDescription("")
     } finally {
       setSaving(false)
     }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") handleSubmit()
+    if (e.key === "Enter" && !e.shiftKey) handleSubmit()
     if (e.key === "Escape") onCancel()
   }
 
   return (
-    <div className="mb-3 flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 px-2 py-1.5">
+    <div className="mb-3 flex flex-col gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-2 py-2">
       <Input
-        ref={inputRef}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
+        ref={nameRef}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
         onKeyDown={handleKeyDown}
         disabled={saving}
-        placeholder="Platform name…"
+        placeholder="Name"
         className="h-6 border-0 bg-transparent px-0 text-xs text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-0"
       />
-      <div className="flex shrink-0 items-center gap-1">
+      <Input
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        onKeyDown={handleKeyDown}
+        disabled={saving}
+        placeholder="Description (optional)"
+        className="h-6 border-0 bg-transparent px-0 text-xs text-zinc-500 placeholder:text-zinc-700 focus-visible:ring-0"
+      />
+      <div className="flex items-center gap-1 self-end">
         {saving ? (
           <Loader2 className="h-3 w-3 animate-spin text-zinc-500" />
         ) : (
           <>
             <button
               onClick={handleSubmit}
-              disabled={!value.trim()}
+              disabled={!name.trim()}
               className={cn(
                 "rounded p-0.5 transition-colors",
-                value.trim()
+                name.trim()
                   ? "text-zinc-300 hover:text-emerald-400"
                   : "cursor-not-allowed text-zinc-700"
               )}
-              aria-label="Add platform"
+              aria-label="Add mod manager"
             >
               <Check className="h-3 w-3" />
             </button>
@@ -253,11 +292,11 @@ function AddPlatformForm({ onAdd, onCancel }: AddFormProps) {
 
 // ─── Main Sheet ────────────────────────────────────────────────────────────────
 
-export default function PlatformManageSheet({
+export default function ModManagerManageSheet({
   open,
   onOpenChange,
-}: PlatformManageSheetProps) {
-  const [platforms, setPlatforms] = useState<Platform[]>([])
+}: ModManagerManageSheetProps) {
+  const [modManagers, setModManagers] = useState<ModManager[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const { refreshOptions } = useContext(FilterContext)
@@ -265,56 +304,59 @@ export default function PlatformManageSheet({
   useEffect(() => {
     if (!open) return
     setLoading(true)
-    listPlatforms()
-      .then(setPlatforms)
+    listModManagers()
+      .then(setModManagers)
       .finally(() => setLoading(false))
   }, [open])
 
   // ── Create ─────────────────────────────────────────────────────────────────
-  async function handleAdd(name: string) {
+  async function handleAdd(name: string, description?: string) {
     const tempId = `temp-${Date.now()}`
 
-    setPlatforms((prev) => [...prev, { id: tempId, name }])
+    setModManagers((prev) => [...prev, { id: tempId, name, description }])
     setShowAddForm(false)
 
     try {
-      const created = await createPlatform({ name })
-      setPlatforms((prev) =>
-        prev.map((p) =>
-          p.id === tempId ? { id: created?.id ?? tempId, name } : p
+      const created = await createModManager({ name, description })
+      setModManagers((prev) =>
+        prev.map((m) =>
+          m.id === tempId
+            ? { id: created?.id ?? tempId, name, description }
+            : m
         )
       )
-      refreshOptions("platforms")
+      refreshOptions("modManagers")
     } catch {
-      setPlatforms((prev) => prev.filter((p) => p.id !== tempId))
+      setModManagers((prev) => prev.filter((m) => m.id !== tempId))
       setShowAddForm(true)
     }
   }
 
   // ── Delete ─────────────────────────────────────────────────────────────────
   function handleDelete(id: string) {
-    const snapshot = platforms
-    setPlatforms((prev) => prev.filter((p) => p.id !== id))
+    const snapshot = modManagers
+    setModManagers((prev) => prev.filter((m) => m.id !== id))
 
-    deletePlatform(id)
-      .then(() => refreshOptions("platforms"))
+    deleteModManager(id)
+      .then(() => refreshOptions("modManagers"))
       .catch(() => {
-        setPlatforms(snapshot)
+        setModManagers(snapshot)
       })
   }
 
-  // ── Rename ─────────────────────────────────────────────────────────────────
-  async function handleRename(id: string, name: string) {
-    const snapshot = platforms
-    setPlatforms((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)))
+  // ── Edit ───────────────────────────────────────────────────────────────────
+  async function handleEdit(id: string, name: string, description?: string) {
+    const snapshot = modManagers
+    setModManagers((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, name, description } : m))
+    )
 
     try {
-      // Note: API uses `newName` field, not `name`
-      await updatePlatformName(id, { newName: name })
-      refreshOptions("platforms")
+      await updateModManager(id, { name, description })
+      refreshOptions("modManagers")
     } catch {
-      setPlatforms(snapshot)
-      throw new Error("Rename failed")
+      setModManagers(snapshot)
+      throw new Error("Update failed")
     }
   }
 
@@ -324,10 +366,10 @@ export default function PlatformManageSheet({
         {/* Header */}
         <div className="shrink-0 border-b border-zinc-800/60 px-8 py-6">
           <h2 className="text-xl font-semibold tracking-tight text-zinc-100">
-            Manage Platforms
+            Manage Mod Managers
           </h2>
           <p className="mt-1 text-xs text-zinc-500">
-            Add, rename, or remove platforms to keep your library organized.
+            Add, edit, or remove mod managers to keep your library organized.
           </p>
         </div>
 
@@ -338,7 +380,7 @@ export default function PlatformManageSheet({
               {loading ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
-                `${platforms.length} platform${platforms.length !== 1 ? "s" : ""}`
+                `${modManagers.length} mod manager${modManagers.length !== 1 ? "s" : ""}`
               )}
             </span>
             {!showAddForm && (
@@ -348,30 +390,30 @@ export default function PlatformManageSheet({
                 className="h-7 gap-1.5 bg-zinc-100 px-3 text-[11px] font-semibold text-zinc-950 hover:bg-white"
               >
                 <Plus className="h-3 w-3" />
-                Add Platform
+                Add Mod Manager
               </Button>
             )}
           </div>
 
           {showAddForm && (
-            <AddPlatformForm
+            <AddModManagerForm
               onAdd={handleAdd}
               onCancel={() => setShowAddForm(false)}
             />
           )}
 
           {loading ? (
-            <PlatformSkeleton />
-          ) : platforms.length === 0 && !showAddForm ? (
+            <ModManagerSkeleton />
+          ) : modManagers.length === 0 && !showAddForm ? (
             <EmptyState onAdd={() => setShowAddForm(true)} />
           ) : (
             <div className="space-y-0.5">
-              {platforms.map((p) => (
-                <PlatformRow
-                  key={p.id}
-                  platform={p}
+              {modManagers.map((m) => (
+                <ModManagerRow
+                  key={m.id}
+                  modManager={m}
                   onDelete={handleDelete}
-                  onRename={handleRename}
+                  onEdit={handleEdit}
                 />
               ))}
             </div>

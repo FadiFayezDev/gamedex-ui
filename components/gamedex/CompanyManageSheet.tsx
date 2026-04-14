@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react"
+import React, { useContext, useEffect, useRef, useState } from "react"
 import { Sheet, SheetContent } from "../ui/sheet"
 import {
   createCompany,
@@ -11,6 +11,7 @@ import { Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { cn } from "@/lib/utils"
+import { FilterContext } from "../contexts/FilterContext"
 
 type CompanyManageSheetProps = {
   open: boolean
@@ -254,6 +255,7 @@ export default function CompanyManageSheet({
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
+  const { refreshOptions } = useContext(FilterContext)
 
   useEffect(() => {
     if (!open) return
@@ -277,6 +279,7 @@ export default function CompanyManageSheet({
           c.id === tempId ? { id: created?.id ?? tempId, name } : c
         )
       )
+      refreshOptions("companies")
     } catch {
       setCompanies((prev) => prev.filter((c) => c.id !== tempId))
       setShowAddForm(true)
@@ -288,9 +291,11 @@ export default function CompanyManageSheet({
     const snapshot = companies
     setCompanies((prev) => prev.filter((c) => c.id !== id))
 
-    deleteCompany(id).catch(() => {
-      setCompanies(snapshot)
-    })
+    deleteCompany(id)
+      .then(() => refreshOptions("companies"))
+      .catch(() => {
+        setCompanies(snapshot)
+      })
   }
 
   // ── Rename ─────────────────────────────────────────────────────────────────
@@ -302,6 +307,7 @@ export default function CompanyManageSheet({
 
     try {
       await updateCompanyName(id, { newName: name })
+      refreshOptions("companies")
     } catch {
       setCompanies(snapshot)
       throw new Error("Rename failed")

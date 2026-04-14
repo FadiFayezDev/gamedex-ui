@@ -20,6 +20,9 @@ export interface GameDetails {
   installSizeBytes: number | null;
   priceAmount: number | null;
   priceCurrency: string | null;
+  coverUrl: string | null;
+  screenshotUrls: string[];
+  trailerUrl: string | null;
   requirements: Requirement[];
   controlMappings: ControlMapping[];
   mediaAssets: MediaAsset[];

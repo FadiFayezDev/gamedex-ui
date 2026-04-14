@@ -28,76 +28,105 @@ function DualRangeSlider({
   unit?: string
 }) {
   const railRef = useRef<HTMLDivElement>(null)
-  const dragging = useRef<"min" | "max" | null>(null)
+  // عدلنا الـ dragging عشان يشيل حالة الـ "both"
+  const dragging = useRef<"min" | "max" | "both" | null>(null)
+  // محتاجين نسجل نقطة البداية للسحب الجماعي
+  const startPos = useRef<{ x: number; val: [number, number] } | null>(null)
 
   const pct = (v: number) => ((v - min) / (max - min)) * 100
 
   const valueFromClient = (clientX: number): number => {
-    const rect = railRef.current!.getBoundingClientRect()
+    if (!railRef.current) return 0
+    const rect = railRef.current.getBoundingClientRect()
     const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
     return Math.round(ratio * (max - min) + min)
   }
 
-  const onPointerDown = (thumb: "min" | "max") => (e: React.PointerEvent) => {
+  const onPointerDown = (type: "min" | "max" | "both") => (e: React.PointerEvent) => {
     e.stopPropagation()
-    dragging.current = thumb
+    dragging.current = type
+    if (type === "both") {
+      startPos.current = { x: e.clientX, val: [...value] }
+    }
     ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
   }
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!dragging.current || !railRef.current) return
+    
+    if (dragging.current === "both" && startPos.current) {
+      const rect = railRef.current.getBoundingClientRect()
+      const deltaX = e.clientX - startPos.current.x
+      const deltaVal = Math.round((deltaX / rect.width) * (max - min))
+      
+      let nextMin = startPos.current.val[0] + deltaVal
+      let nextMax = startPos.current.val[1] + deltaVal
+
+      // Bound checking: التأكد إن الرينج ميطلعش بره الـ Min/Max الكلي
+      if (nextMin < min) {
+        nextMax += (min - nextMin)
+        nextMin = min
+      }
+      if (nextMax > max) {
+        nextMin -= (nextMax - max)
+        nextMax = max
+      }
+
+      onChange([nextMin, nextMax])
+      return
+    }
+
     const v = valueFromClient(e.clientX)
-    if (dragging.current === "min")
-      onChange([Math.min(v, value[1] - 1), value[1]])
-    else onChange([value[0], Math.max(v, value[0] + 1)])
+    if (dragging.current === "min") onChange([Math.min(v, value[1] - 1), value[1]])
+    else if (dragging.current === "max") onChange([value[0], Math.max(v, value[0] + 1)])
   }
 
   const onPointerUp = (e: React.PointerEvent) => {
-    if (!dragging.current || !railRef.current) return
-    const v = valueFromClient(e.clientX)
-    const next: [number, number] =
-      dragging.current === "min"
-        ? [Math.min(v, value[1] - 1), value[1]]
-        : [value[0], Math.max(v, value[0] + 1)]
-    onCommit(next)
     dragging.current = null
+    startPos.current = null
+    onCommit(value)
   }
 
   const lo = pct(value[0])
   const hi = pct(value[1])
 
   return (
-    <div className="flex w-full flex-col gap-2.5">
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-medium tracking-widest text-zinc-500 uppercase">
-          {label}
-        </span>
-        <span className="font-mono text-[10px] text-zinc-400 tabular-nums">
-          {unit}
-          {value[0]}&nbsp;–&nbsp;{unit}
-          {value[1]}
+    <div className="flex w-full flex-col gap-3 select-none">
+      <div className="flex items-center justify-between px-0.5">
+        <span className="text-[10px] font-bold tracking-[0.15em] text-zinc-500 uppercase">{label}</span>
+        <span className="font-mono text-[11px] text-zinc-400 tabular-nums">
+          {unit}{value[0]} — {unit}{value[1]}
         </span>
       </div>
-      <div className="px-1.75">
+
+      <div className="relative px-2">
         <div
           ref={railRef}
-          className="relative flex h-5 cursor-crosshair items-center select-none"
+          className="relative flex h-4 items-center"
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          <div className="absolute inset-x-0 h-0.5 rounded-full bg-zinc-800" />
+          {/* Background Track */}
+          <div className="absolute inset-x-0 h-0.75 rounded-full bg-zinc-800" />
+          
+          {/* Active Range Bar (قابل للسحب الآن) */}
           <div
-            className="absolute h-0.5 rounded-full bg-zinc-500"
+            className="absolute h-0.75 cursor-grab rounded-full bg-zinc-400 active:cursor-grabbing hover:bg-zinc-300 transition-colors"
             style={{ left: `${lo}%`, right: `${100 - hi}%` }}
+            onPointerDown={onPointerDown("both")}
           />
+
+          {/* Min Thumb */}
           <div
-            className="absolute z-10 h-3.5 w-3.5 cursor-grab rounded-full bg-zinc-200 shadow-md ring-1 ring-zinc-600 transition-colors hover:bg-white hover:ring-zinc-400 active:cursor-grabbing"
+            className="absolute z-20 h-3.5 w-3.5 cursor-grab rounded-full bg-zinc-100 border border-zinc-400 shadow-[0_0_8px_rgba(0,0,0,0.5)] active:scale-125 transition-transform"
             style={{ left: `calc(${lo}% - 7px)` }}
             onPointerDown={onPointerDown("min")}
           />
+
+          {/* Max Thumb */}
           <div
-            className="absolute z-10 h-3.5 w-3.5 cursor-grab rounded-full bg-zinc-200 shadow-md ring-1 ring-zinc-600 transition-colors hover:bg-white hover:ring-zinc-400 active:cursor-grabbing"
+            className="absolute z-20 h-3.5 w-3.5 cursor-grab rounded-full bg-zinc-100 border border-zinc-400 shadow-[0_0_8px_rgba(0,0,0,0.5)] active:scale-125 transition-transform"
             style={{ left: `calc(${hi}% - 7px)` }}
             onPointerDown={onPointerDown("max")}
           />
@@ -146,33 +175,25 @@ function CollapsibleSection({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 function SidebarFilters() {
-  const { filterModel: contextFilterModel, setFilterModel } =
+  const { filterModel: contextFilterModel, setFilterModel, options } =
     useContext(FilterContext)
-  const localFilterModel = useFilterModel()
 
-  useEffect(() => {
-    if (localFilterModel.checkboxes.genres.length > 0 && !contextFilterModel) {
-      setFilterModel(localFilterModel)
-    }
-  }, [
-    localFilterModel.checkboxes.genres.length,
-    contextFilterModel,
-    setFilterModel,
-  ])
-
-  const checkboxSections: Section[] = Object.entries(
-    localFilterModel.checkboxes
-  ).map(([key, items]) => ({
-    key,
-    title: key.charAt(0).toUpperCase() + key.slice(1),
-    items,
-  }))
+  const checkboxSections: Section[] = [
+    { key: "genres", title: "Genres", items: options.genres.map(g => g.name) },
+    { key: "platforms", title: "Platforms", items: options.platforms.map(p => p.name) },
+    { key: "companies", title: "Companies", items: options.companies.map(c => c.name) },
+    { key: "modManagers", title: "Mod Managers", items: options.modManagers.map(m => m.name) },
+    { key: "tags", title: "Tags", items: ["Multiplayer", "Single Player", "Controller Support"] },
+  ]
 
   const initialFilters = Object.fromEntries(
     checkboxSections.map((s) => [s.key, []])
   )
-  const initialRange = localFilterModel.range
-  const initialSortBy = localFilterModel.sortBy
+  const initialRange = {
+    price: { min: 0, max: 100 },
+    size: { min: 0, max: 100 },
+  }
+  const initialSortBy = "name"
 
   const [filters, setFilters] =
     useState<Record<string, string[]>>(initialFilters)
@@ -180,17 +201,18 @@ function SidebarFilters() {
   const [tempRange, setTempRange] = useState(initialRange)
   const [sortBy, setSortBy] = useState(initialSortBy)
   const [isOpen, setIsOpen] = useState(true)
-
-  // Controls whether content is visible — delayed on close so content fades before width collapses
   const [contentVisible, setContentVisible] = useState(true)
+
+  // Update context filter model whenever local state changes
+  useEffect(() => {
+    setFilterModel({ checkboxes: filters, range: rangeFilters, sortBy })
+  }, [filters, rangeFilters, sortBy, setFilterModel])
 
   const handleToggle = () => {
     if (isOpen) {
-      // Close: fade content first, then collapse width
       setContentVisible(false)
       setTimeout(() => setIsOpen(false), 150)
     } else {
-      // Open: expand width first, then fade in content
       setIsOpen(true)
       setTimeout(() => setContentVisible(true), 50)
     }
@@ -212,10 +234,6 @@ function SidebarFilters() {
       }
     })
   }
-
-  useEffect(() => {
-    setFilterModel({ checkboxes: filters, range: rangeFilters, sortBy })
-  }, [filters, rangeFilters, sortBy, setFilterModel])
 
   const handleClearAll = () => {
     setFilters(initialFilters)
@@ -291,8 +309,7 @@ function SidebarFilters() {
           </button>
         </div>
 
-        {/* Scrollable body */}
-        <div className="scrollbar-custom flex-1 space-y-4 overflow-y-auto px-4 pb-4">
+        <div className=" space-y-4 overflow-y-auto px-4 pb-4">
           <Input
             type="search"
             placeholder="Search…"
@@ -342,7 +359,10 @@ function SidebarFilters() {
               }}
             />
           </div>
+        </div>
 
+        {/* Scrollable body */}
+        <div className="scrollbar-custom flex-1 space-y-4 overflow-y-auto px-4 pb-4">
           {checkboxSections.map((section) => (
             <CollapsibleSection key={section.key} title={section.title}>
               <div className="space-y-0.5 pt-0.5">

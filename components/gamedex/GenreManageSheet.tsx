@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react"
+import React, { useContext, useEffect, useRef, useState } from "react"
 import { Sheet, SheetContent } from "../ui/sheet"
 import {
   createGenre,
@@ -11,6 +11,7 @@ import { Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { cn } from "@/lib/utils"
+import { FilterContext } from "../contexts/FilterContext"
 
 type GenreManageSheetProps = {
   open: boolean
@@ -257,6 +258,7 @@ export default function GenreManageSheet({
   const [genres, setGenres] = useState<Genre[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
+  const { refreshOptions } = useContext(FilterContext)
 
   useEffect(() => {
     if (!open) return
@@ -284,6 +286,7 @@ export default function GenreManageSheet({
           g.id === tempId ? { id: created?.id ?? tempId, name } : g
         )
       )
+      refreshOptions("genres")
     } catch {
       // Revert on failure and reopen the form
       setGenres((prev) => prev.filter((g) => g.id !== tempId))
@@ -298,9 +301,11 @@ export default function GenreManageSheet({
     const snapshot = genres
     setGenres((prev) => prev.filter((g) => g.id !== id))
 
-    deleteGenre(id).catch(() => {
-      setGenres(snapshot)
-    })
+    deleteGenre(id)
+      .then(() => refreshOptions("genres"))
+      .catch(() => {
+        setGenres(snapshot)
+      })
   }
 
   // ── Rename ─────────────────────────────────────────────────────────────────
@@ -310,6 +315,7 @@ export default function GenreManageSheet({
 
     try {
       await updateGenre(id, { name })
+      refreshOptions("genres")
     } catch {
       setGenres(snapshot)
       throw new Error("Rename failed") // surface error back to GenreRow
