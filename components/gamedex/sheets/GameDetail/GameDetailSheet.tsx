@@ -802,19 +802,16 @@ export function GameDetailSheet({
 
   return (
     <>
-      {/* ── Fullscreen Trailer Modal ── */}
-      <AnimatePresence>
-        {trailerModalOpen && trailer && (
-          <TrailerModal
-            url={trailer.url}
-            title={game?.title ?? ""}
-            onClose={() => setTrailerModalOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="flex w-full flex-col overflow-hidden border-l border-zinc-800 bg-[#0a0a0b] p-0 sm:max-w-570 lg:min-w-150">
+        <SheetContent
+          onPointerDownOutside={(e) => {
+            if (trailerModalOpen || confirmDeleteGameOpen) e.preventDefault()
+          }}
+          onInteractOutside={(e) => {
+            if (trailerModalOpen || confirmDeleteGameOpen) e.preventDefault()
+          }}
+          className="flex w-full flex-col overflow-hidden border-l border-zinc-800 bg-[#0a0a0b] p-0 sm:max-w-570 lg:min-w-150"
+        >
           {/* ── Loading ── */}
           {loading && (
             <div className="flex flex-1 flex-col">
@@ -1815,6 +1812,16 @@ export function GameDetailSheet({
               </div>
             </>
           )}
+          {/* ── Fullscreen Trailer Modal ── */}
+          <AnimatePresence>
+            {trailerModalOpen && trailer && (
+              <TrailerModal
+                url={game?.trailerUrl ?? ""}
+                title={game?.title ?? ""}
+                onClose={() => setTrailerModalOpen(false)}
+              />
+            )}
+          </AnimatePresence>
         </SheetContent>
       </Sheet>
 
