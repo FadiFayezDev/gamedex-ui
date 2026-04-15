@@ -1822,20 +1822,20 @@ export function GameDetailSheet({
               />
             )}
           </AnimatePresence>
+
+          {/* Delete Game Confirm Modal */}
+          <ConfirmModal
+            open={confirmDeleteGameOpen}
+            danger
+            title="Delete Game"
+            message={`Are you absolutely sure you want to delete "${game?.title}"? All associated data will be permanently removed.`}
+            confirmLabel="Delete Game"
+            isLoading={isDeletingGame}
+            onConfirm={handleDeleteGameConfirm}
+            onCancel={() => setConfirmDeleteGameOpen(false)}
+          />
         </SheetContent>
       </Sheet>
-
-      {/* Delete Game Confirm Modal */}
-      <ConfirmModal
-        open={confirmDeleteGameOpen}
-        danger
-        title="Delete Game"
-        message={`Are you absolutely sure you want to delete "${game?.title}"? All associated data will be permanently removed.`}
-        confirmLabel="Delete Game"
-        isLoading={isDeletingGame}
-        onConfirm={handleDeleteGameConfirm}
-        onCancel={() => setConfirmDeleteGameOpen(false)}
-      />
     </>
   )
 }
