@@ -45,6 +45,29 @@ export function LibraryPage() {
   const [companiesSheetOpen, setCompaniesSheetOpen] = React.useState(false)
   const [modManagerSheetOpen, setModManagerSheetOpen] = React.useState(false)
 
+useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // سنطبع في الكونسول لنرى ما الذي يقرأه المتصفح فعلياً عند الضغط
+      console.log("Key pressed:", event.key, "Ctrl:", event.ctrlKey, "Alt:", event.altKey);
+
+      // الاختصار: Alt + S (أقل تعارضاً من Ctrl)
+      if (event.altKey && event.key.toLowerCase() === "n") {
+        event.preventDefault();
+        event.stopPropagation(); // لمنع الحدث من الصعود لأي عنصر آخر
+        
+        console.log("Success! Shortcut triggered.");
+        setIsSheetOpen(true);
+      }
+    };
+
+    // نستخدم capture: true لضمان التقاط الحدث في مرحلة البداية
+    window.addEventListener("keydown", handleKeyDown, true);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, []);
+
   useEffect(() => {
     const fetchGames = async () => {
       try {
@@ -128,7 +151,7 @@ export function LibraryPage() {
     })
 
     // Sorting logic
-    const { sortBy } = filterModel
+    const sortBy = filterModel?.sortBy ?? "name"
     return [...result].sort((a, b) => {
       switch (sortBy) {
         case "name":
@@ -145,7 +168,7 @@ export function LibraryPage() {
           return 0
       }
     })
-  }, [games, filters, filterModel.sortBy])
+  }, [games, filters, filterModel?.sortBy])
 
   const handleCreateGame = async (input: AddGameInput) => {
     try {

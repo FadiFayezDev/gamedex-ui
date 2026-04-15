@@ -15,6 +15,7 @@ export type FilterModel = {
     size: { min: number; max: number };
   };
   sortBy: string;
+  query: string;
 };
 
 // 👇 ده الـ static default
@@ -31,6 +32,7 @@ export const defaultFilterModel: FilterModel = {
     size: { min: 0, max: 100 },
   },
   sortBy: "name",
+  query: "",
 };
 
 // 👇 functions بتجيب البيانات من الـAPI (يرجع الـobjects كاملة)

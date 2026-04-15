@@ -167,7 +167,7 @@ function CollapsibleSection({
       </button>
       <div
         className="overflow-hidden transition-all duration-200 ease-in-out"
-        style={{ maxHeight: open ? "500px" : "0px", opacity: open ? 1 : 0 }}
+        style={{ maxHeight: open ? "2000px" : "0px", opacity: open ? 1 : 0 }}
       >
         <div className="mt-0.5 space-y-1 border-l border-zinc-800 pb-1 pl-3">
           {children}
@@ -205,13 +205,14 @@ function SidebarFilters() {
   const [rangeFilters, setRangeFilters] = useState(initialRange)
   const [tempRange, setTempRange] = useState(initialRange)
   const [sortBy, setSortBy] = useState(initialSortBy)
+  const [query, setQuery] = useState("")
   const [isOpen, setIsOpen] = useState(true)
   const [contentVisible, setContentVisible] = useState(true)
 
   // Update context filter model whenever local state changes
   useEffect(() => {
-    setFilterModel({ checkboxes: filters, range: rangeFilters, sortBy })
-  }, [filters, rangeFilters, sortBy, setFilterModel])
+    setFilterModel({ checkboxes: filters, range: rangeFilters, sortBy, query })
+  }, [filters, rangeFilters, sortBy, query, setFilterModel])
 
   const handleToggle = () => {
     if (isOpen) {
@@ -226,7 +227,8 @@ function SidebarFilters() {
   const activeCount =
     Object.values(filters).flat().length +
     (rangeFilters.price.min !== 0 || rangeFilters.price.max !== 100 ? 1 : 0) +
-    (rangeFilters.size.min !== 0 || rangeFilters.size.max !== 100 ? 1 : 0)
+    (rangeFilters.size.min !== 0 || rangeFilters.size.max !== 100 ? 1 : 0) +
+    (query ? 1 : 0)
 
   const toggleValue = (sectionKey: string, val: string) => {
     setFilters((prev) => {
@@ -244,6 +246,7 @@ function SidebarFilters() {
     setFilters(initialFilters)
     setRangeFilters(initialRange)
     setSortBy(initialSortBy)
+    setQuery("")
     setTempRange(initialRange)
   }
 
@@ -318,6 +321,8 @@ function SidebarFilters() {
           <Input
             type="search"
             placeholder="Search…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             className="h-7 w-full rounded-md border-zinc-800 bg-zinc-900/50 text-xs placeholder:text-zinc-600 focus-visible:ring-zinc-700"
           />
 

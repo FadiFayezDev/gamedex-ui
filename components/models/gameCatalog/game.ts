@@ -17,6 +17,9 @@ export interface GameDetails {
   ageRating: AgeRating; // Enum reference
   criticRating: number | null;
   userRating: number | null;
+  rating?: number | null;
+  isFavorite?: boolean;
+  isPlayed?: boolean;
   installSizeBytes: number | null;
   priceAmount: number | null;
   priceCurrency: string | null;

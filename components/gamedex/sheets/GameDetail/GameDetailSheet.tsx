@@ -90,6 +90,7 @@ import EntityPicker from "./components/EntityPicker"
 import { Chip } from "./components/Chip"
 import { CompanyPicker } from "./components/CompanyPicker"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
+import { useToast } from "@/components/contexts/ToastContext"
 
 
 
@@ -1215,14 +1216,14 @@ export function GameDetailSheet({
                             key={a.id}
                             className="group relative flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900"
                           >
-                            {a.type === 3 ? (
+                            {a.type === AssetType.VideoTrailer ? (
                               /* Trailer thumbnail with play overlay */
                               <div
                                 className="relative h-full w-full cursor-pointer"
                                 onClick={() => setTrailerModalOpen(true)}
                               >
                                 <video
-                                  src={a.url}
+                                  src={game.trailerUrl ?? ""}
                                   className="h-full w-full object-cover"
                                   muted
                                   preload="metadata"

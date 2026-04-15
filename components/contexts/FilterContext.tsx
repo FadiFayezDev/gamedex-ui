@@ -9,7 +9,7 @@ import {
   useEffect,
   useCallback,
 } from "react";
-import { FilterModel, fetchGenresData, fetchPlatformsData, fetchCompaniesData, fetchModManagersData } from "../models/filterModel";
+import { FilterModel, defaultFilterModel, fetchGenresData, fetchPlatformsData, fetchCompaniesData, fetchModManagersData } from "../models/filterModel";
 import { Genre, Platform } from "@/lib/schemas/game";
 import { Company } from "../models/ecosystem/Company";
 import { ModManager } from "@/lib/services/mod-managers";
@@ -30,7 +30,7 @@ type FilterContextType = {
 };
 
 export const FilterContext = createContext<FilterContextType>({
-  filterModel: null,
+  filterModel: defaultFilterModel,
   setFilterModel: () => { },
   options: {
     genres: [],
@@ -42,7 +42,7 @@ export const FilterContext = createContext<FilterContextType>({
 });
 
 export function FilterProvider({ children }: { children: ReactNode }) {
-  const [filterModel, setFilterModel] = useState<FilterModel | null>(null);
+  const [filterModel, setFilterModel] = useState<FilterModel | null>(defaultFilterModel);
   const [options, setOptions] = useState<{
     genres: Genre[];
     platforms: Platform[];
