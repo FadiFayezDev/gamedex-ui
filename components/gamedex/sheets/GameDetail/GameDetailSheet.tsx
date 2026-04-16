@@ -34,6 +34,10 @@ import {
   Volume2,
   VolumeX,
   AlertTriangle,
+  Music,
+  Disc,
+  Clock,
+  Download,
 } from "lucide-react"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import {
@@ -54,19 +58,27 @@ import {
   deletePerformanceProfile,
   deleteRequirement,
   deleteControlMapping,
+  getGameTrailerUrl,
+  getGameScreenshotUrl,
   updateGameCover,
   deleteGameCover,
   uploadGameScreenshot,
+  listScreenshots,
   deleteScreenshot,
   uploadGameTrailer,
-  addMediaAsset,
-  deleteMediaAsset,
-  getGameScreenshotUrl,
-  getGameTrailerUrl,
+  getTrailerUrl,
   getGameCoverUrl,
   deleteTrailer,
   deleteGame,
+  exportGame,
+  addMediaAsset,
 } from "@/lib/services/games"
+import {
+  publishAlbum,
+  deleteAlbum,
+  addSongToAlbum,
+  deleteAlbumSong,
+} from "@/lib/services/albums"
 import { listGenres } from "@/lib/services/genres"
 import { listPlatforms } from "@/lib/services/platforms"
 import { listModManagers } from "@/lib/services/mod-managers"
@@ -129,7 +141,7 @@ const AGE_RATING_OPTIONS = [
 ]
 
 const getAgeRatingLabel = (value: number | null | undefined) =>
-  AGE_RATING_OPTIONS.find((o) => o.value === String(value))?.label ?? "�"
+  AGE_RATING_OPTIONS.find((o) => o.value === String(value))?.label ?? ""
 async function fetchModManagers(): Promise<PickerEntity[]> {
   const data = await listModManagers()
   if (!data || !Array.isArray(data)) return []
@@ -144,6 +156,17 @@ async function fetchModManagers(): Promise<PickerEntity[]> {
 const MISSION_FIELDS: FormField[] = [
   { key: "title", placeholder: "Mission title…" },
   { key: "description", placeholder: "Description (optional)…" },
+]
+
+const ALBUM_FIELDS: FormField[] = [
+  { key: "title", placeholder: "Album title…" },
+  { key: "releaseDate", placeholder: "Release date…", type: "date" },
+]
+
+const SONG_FIELDS: FormField[] = [
+  { key: "title", placeholder: "Song title…" },
+  { key: "trackNumber", placeholder: "Track #", type: "number" },
+  { key: "durationSeconds", placeholder: "Duration (sec)", type: "number" },
 ]
 
 const CHARACTER_FIELDS: FormField[] = [
@@ -351,11 +374,14 @@ export function GameDetailSheet({
   onUpdate,
 }: Props) {
   const [game, setGame] = useState<GameDetails | null>(null)
+  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [missionsRowIsOpen, setMissionsRowIsOpen] = useState<string | null>(
     null
   )
+  const [albumsRowIsOpen, setAlbumsRowIsOpen] = useState<string | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
 
   // ── Header state ──────────────────────────────────────────────────────────
   const [showTrailerInHeader, setShowTrailerInHeader] = useState<boolean>(
@@ -385,6 +411,21 @@ export function GameDetailSheet({
     } catch (err) {
       console.error("Failed to delete game:", err)
       setIsDeletingGame(false)
+    }
+  }
+
+  // ── EXPORT GAME ─────────────────────────────────────────────────────────────
+  const handleExport = async () => {
+    if (!game) return
+    setIsExporting(true)
+    try {
+      await exportGame(game.id, game.title)
+      toast("Export started", "success", `"${game.title}" is being exported. Check your system dialog.`)
+    } catch (err) {
+      console.error("Failed to export game:", err)
+      toast("Export failed", "error", "Something went wrong during export.")
+    } finally {
+      setIsExporting(false)
     }
   }
 
@@ -624,57 +665,112 @@ export function GameDetailSheet({
 
   // ── Add handlers ──────────────────────────────────────────────────────────
   const handleAddMission = async (v: Record<string, string>) => {
-    await addMission(gameId, {
-      title: v.title,
-      description: v.description || undefined,
-    })
-    await refresh()
+    if (game?.missions.some((m) => m.title.toLowerCase() === v.title.toLowerCase())) {
+      return toast("Mission already exists", "error", "The mission title must be unique.")
+    }
+    try {
+      await addMission(gameId, {
+        title: v.title,
+        description: v.description || undefined,
+      })
+      await refresh()
+    } catch (err) {
+      toast("Failed to add mission", "error")
+      console.error(err)
+    }
   }
 
   const handleAddCharacter = async (v: Record<string, string>) => {
-    await addCharacterProfile(gameId, { name: v.name, role: v.role })
-    await refresh()
+    if (game?.characterProfiles.some((c) => c.name.toLowerCase() === v.name.toLowerCase())) {
+      return toast("Character already exists", "error", "The character name must be unique.")
+    }
+    try {
+      await addCharacterProfile(gameId, { name: v.name, role: v.role })
+      await refresh()
+    } catch (err) {
+      toast("Failed to add character", "error")
+      console.error(err)
+    }
   }
 
   const handleAddDlc = async (v: Record<string, string>) => {
-    await addDlc(gameId, {
-      title: v.title,
-      releaseDate: v.releaseDate || undefined,
-    })
-    await refresh()
+    if (game?.dlcs.some((d) => d.title.toLowerCase() === v.title.toLowerCase())) {
+      return toast("DLC already exists", "error", "The DLC title must be unique.")
+    }
+    try {
+      await addDlc(gameId, {
+        title: v.title,
+        releaseDate: v.releaseDate || undefined,
+      })
+      await refresh()
+    } catch (err) {
+      toast("Failed to add DLC", "error")
+      console.error(err)
+    }
   }
 
   const handleAddPerfProfile = async (v: Record<string, string>) => {
-    await addPerformanceProfile(gameId, {
-      resolution: v.resolution || undefined,
-      targetFps: parseInt(v.targetFps) || undefined,
-      settingsPreset: v.settingsPreset || undefined,
-    })
-    await refresh()
+    if (game?.performanceProfiles.some((p) => 
+      p.resolution?.toLowerCase() === v.resolution?.toLowerCase() && 
+      p.settingsPreset?.toLowerCase() === v.settingsPreset?.toLowerCase()
+    )) {
+      return toast("Profile already exists", "error", "A profile with this resolution and preset already exists.")
+    }
+    try {
+      await addPerformanceProfile(gameId, {
+        resolution: v.resolution || undefined,
+        targetFps: parseInt(v.targetFps) || undefined,
+        settingsPreset: v.settingsPreset || undefined,
+      })
+      await refresh()
+    } catch (err) {
+      toast("Failed to add profile", "error")
+      console.error(err)
+    }
   }
 
   const handleAddRequirement = async (v: Record<string, string>) => {
-    await addRequirement(gameId, {
-      type: parseInt(v.type) as any,
-      os: v.os || undefined,
-      cpu: v.cpu || undefined,
-      gpu: v.gpu || undefined,
-      ramBytes: v.ramGb
-        ? Math.round(parseFloat(v.ramGb) * 1073741824)
-        : undefined,
-      storageBytes: v.storageBytes ? parseInt(v.storageBytes) : undefined,
-      additionalNotes: v.additionalNotes || undefined,
-    })
-    await refresh()
+    const type = parseInt(v.type)
+    if (game?.requirements.some((r) => r.type === type)) {
+      return toast("Requirement already exists", "error", "You already have a requirement of this type.")
+    }
+    try {
+      await addRequirement(gameId, {
+        type: type as any,
+        os: v.os || undefined,
+        cpu: v.cpu || undefined,
+        gpu: v.gpu || undefined,
+        ramBytes: v.ramGb
+          ? Math.round(parseFloat(v.ramGb) * 1073741824)
+          : undefined,
+        storageBytes: v.storageBytes ? parseInt(v.storageBytes) : undefined,
+        additionalNotes: v.additionalNotes || undefined,
+      })
+      await refresh()
+    } catch (err) {
+      toast("Failed to add requirement", "error")
+      console.error(err)
+    }
   }
 
   const handleAddControlMapping = async (v: Record<string, string>) => {
-    await addControlMapping(gameId, {
-      device: v.device || undefined,
-      action: v.action || undefined,
-      key: v.key || undefined,
-    })
-    await refresh()
+    if (game?.controlMappings.some((m) => 
+      m.action?.toLowerCase() === v.action?.toLowerCase() && 
+      m.key?.toLowerCase() === v.key?.toLowerCase()
+    )) {
+      return toast("Mapping already exists", "error", "A mapping for this action and key already exists.")
+    }
+    try {
+      await addControlMapping(gameId, {
+        device: v.device || undefined,
+        action: v.action || undefined,
+        key: v.key || undefined,
+      })
+      await refresh()
+    } catch (err) {
+      toast("Failed to add control mapping", "error")
+      console.error(err)
+    }
   }
 
   const handleAddMediaAsset = async (v: any) => {
@@ -774,6 +870,65 @@ export function GameDetailSheet({
 
 
 
+  const handleAddAlbum = async (v: any) => {
+    if (!game) return
+    if (game.albums?.some((a) => a.title?.toLowerCase() === v.title?.toLowerCase())) {
+      return toast("Album already exists", "error", "The album title must be unique.")
+    }
+    try {
+      await publishAlbum({ ...v, gameId: game.id })
+      await refresh()
+    } catch (err) {
+      toast("Failed to add album", "error")
+      console.error(err)
+    }
+  }
+
+  const handleDeleteAlbum = async (id: string) => {
+    try {
+      await deleteAlbum(id)
+      await refresh()
+    } catch (err) {
+      toast("Failed to delete album", "error")
+      console.error(err)
+    }
+  }
+
+  const handleAddSong = async (albumId: string, v: any) => {
+    const album = game?.albums?.find((a) => a.id === albumId)
+    const trackNumber = parseInt(v.trackNumber) || 0
+    
+    if (album?.songs?.some((s) => s.title?.toLowerCase() === v.title?.toLowerCase())) {
+      return toast("Song title exists", "error", "A song with this title already exists in this album.")
+    }
+    if (album?.songs?.some((s) => s.trackNumber === trackNumber)) {
+      return toast("Track number exists", "error", `Track #${trackNumber} already exists in this album.`)
+    }
+
+    try {
+      await addSongToAlbum(albumId, {
+        ...v,
+        trackNumber,
+        durationSeconds: parseInt(v.durationSeconds) || 0,
+      })
+      await refresh()
+    } catch (err) {
+      toast("Failed to add song", "error")
+      console.error(err)
+    }
+  }
+
+  const handleDeleteSong = async (albumId: string, songId: string) => {
+    await deleteAlbumSong(albumId, songId)
+    await refresh()
+  }
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, "0")}`
+  }
+
   // ── Nav ───────────────────────────────────────────────────────────────────
   const scrollTo = (id: string) =>
     document
@@ -788,6 +943,7 @@ export function GameDetailSheet({
     { id: "sec-missions", label: "Missions" },
     { id: "sec-chars", label: "Characters" },
     { id: "sec-dlcs", label: "DLCs" },
+    { id: "sec-music", label: "Music" },
     { id: "sec-perf", label: "Performance" },
     { id: "sec-req", label: "Requirements" },
     { id: "sec-controls", label: "Controls" },
@@ -945,6 +1101,22 @@ export function GameDetailSheet({
                         </span>
                       </div>
                     )}
+
+                    {/* Export button */}
+                    <button
+                      onClick={handleExport}
+                      disabled={isExporting}
+                      className="group flex h-7 items-center gap-1.5 rounded-lg border border-white/10 bg-black/40 px-2.5 text-white/50 backdrop-blur-sm transition-all hover:border-white/20 hover:text-white/80 disabled:opacity-50"
+                    >
+                      {isExporting ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Download className="h-3 w-3 transition-transform group-hover:scale-110" />
+                      )}
+                      <span className="text-[10px] font-semibold tracking-wider uppercase">
+                        Export
+                      </span>
+                    </button>
 
                     {/* Settings gear */}
                     <div className="ml-auto">
@@ -1293,7 +1465,7 @@ export function GameDetailSheet({
                 <div id="sec-genres" className="space-y-5">
                   <Section
                     icon={Layers}
-                    title={`Genres ${listGenres.length}`}
+                    title={`Genres`}
                     action={
                       <EntityPicker
                         fetchFn={listGenres}
@@ -1611,6 +1783,146 @@ export function GameDetailSheet({
                             </button>
                           </div>
                         ))}
+                      </div>
+                    )}
+                  </Section>
+                </div>
+
+                <div className="h-px bg-zinc-800/60" />
+
+                {/* ── Music Albums ── */}
+                <div id="sec-music">
+                  <Section
+                    icon={Music}
+                    title="Music Albums"
+                    action={
+                      <AddFormToggle
+                        fields={ALBUM_FIELDS}
+                        onSave={handleAddAlbum}
+                      />
+                    }
+                  >
+                    {!game.albums || game.albums.length === 0 ? (
+                      <p className="text-xs text-zinc-600 italic">No Albums</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {game.albums?.map((album) => {
+                          const isOpen = albumsRowIsOpen === album.id
+                          return (
+                            <div
+                              key={album.id}
+                              className="overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-900/20 transition-all hover:border-zinc-700/60"
+                            >
+                              <div
+                                className="group flex cursor-pointer items-center justify-between p-3"
+                                onClick={() =>
+                                  setAlbumsRowIsOpen(isOpen ? null : album.id)
+                                }
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-800/40 text-zinc-500 transition-colors group-hover:bg-zinc-800 group-hover:text-zinc-300">
+                                    <Disc className="h-5 w-5" />
+                                  </div>
+                                  <div>
+                                    <div className="text-sm font-medium text-zinc-200">
+                                      {album.title}
+                                    </div>
+                                    <div className="text-[10px] text-zinc-500">
+                                      {formatDate(album.releaseDate)} •{" "}
+                                      {album.songs?.length ?? 0} tracks
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDeleteAlbum(album.id)
+                                    }}
+                                    className="p-1.5 text-zinc-600 opacity-0 transition-all hover:text-red-400 group-hover:opacity-100"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                  <ChevronRight
+                                    className={`h-4 w-4 text-zinc-600 transition-transform duration-300 ${
+                                      isOpen ? "rotate-90" : ""
+                                    }`}
+                                  />
+                                </div>
+                              </div>
+
+                              <AnimatePresence>
+                                {isOpen && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: "auto", opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="border-t border-zinc-800/60 bg-black/20"
+                                  >
+                                    <div className="space-y-1 p-3">
+                                      {(!album.songs ||
+                                        album.songs.length === 0) && (
+                                        <div className="py-4 text-center text-[10px] tracking-widest text-zinc-600 uppercase">
+                                          No Tracks Added
+                                        </div>
+                                      )}
+
+                                      {album.songs &&
+                                        album.songs.length > 0 &&
+                                        [...album.songs]
+                                          .sort(
+                                            (a, b) =>
+                                              a.trackNumber - b.trackNumber
+                                          )
+                                          .map((song) => (
+                                            <div
+                                              key={song.id}
+                                              className="group flex items-center justify-between rounded-lg px-2 py-1.5 transition-colors hover:bg-zinc-800/40"
+                                            >
+                                              <div className="flex items-center gap-3">
+                                                <span className="w-4 font-mono text-[10px] text-zinc-600">
+                                                  {song.trackNumber}
+                                                </span>
+                                                <span className="text-xs text-zinc-300">
+                                                  {song.title}
+                                                </span>
+                                              </div>
+                                              <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-1 text-[10px] text-zinc-600">
+                                                  <Clock className="h-2.5 w-2.5" />
+                                                  {formatDuration(
+                                                    song.durationSeconds
+                                                  )}
+                                                </div>
+                                                <button
+                                                  onClick={() =>
+                                                    handleDeleteSong(
+                                                      album.id,
+                                                      song.id
+                                                    )
+                                                  }
+                                                  className="text-zinc-600 opacity-0 transition-all hover:text-red-400 group-hover:opacity-100"
+                                                >
+                                                  <Trash2 className="h-3 w-3" />
+                                                </button>
+                                              </div>
+                                            </div>
+                                          ))}
+                                      <div className="mt-3 border-t border-zinc-800/40 pt-2">
+                                        <AddFormToggle
+                                          fields={SONG_FIELDS}
+                                          onSave={(v) =>
+                                            handleAddSong(album.id, v)
+                                          }
+                                        />
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
                   </Section>

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { LibraryStats } from "@/lib/schemas/game"
-import { Building2, Gamepad2, MonitorSmartphone, PackageSearch, Plus } from "lucide-react"
+import { Building2, Gamepad2, MonitorSmartphone, PackageSearch, Plus, UploadCloud } from "lucide-react"
 
 type LibraryHeaderProps = {
   stats: LibraryStats
@@ -11,9 +11,10 @@ type LibraryHeaderProps = {
   onPlatformsClick?: () => void
   onCompaniesClick?: () => void
   onModManagerClick?: () => void
+  onImportClick?: () => void
 }
 
-export function LibraryHeader({ stats, onAddClick, onGenresClick, onPlatformsClick, onCompaniesClick, onModManagerClick }: LibraryHeaderProps) {
+export function LibraryHeader({ stats, onAddClick, onGenresClick, onPlatformsClick, onCompaniesClick, onModManagerClick, onImportClick }: LibraryHeaderProps) {
   return (
     <header className="p-8 pb-4 border-b border-zinc-800 flex flex-col md:flex-row md:items-end justify-between gap-6 bg-[#09090b]/80 backdrop-blur-md sticky top-0 z-20">
       <div className="space-y-4">
@@ -91,6 +92,13 @@ export function LibraryHeader({ stats, onAddClick, onGenresClick, onPlatformsCli
     size={20} 
     className="cursor-pointer text-zinc-400 transition-all duration-200 hover:text-white hover:scale-110" 
     onClick={onModManagerClick}
+  />
+
+  {/* Import Button */}
+  <UploadCloud
+    size={20} 
+    className="cursor-pointer text-zinc-400 transition-all duration-200 hover:text-white hover:scale-110" 
+    onClick={onImportClick}
   />
         <div className="ml-4 h-10 w-10 rounded-full border border-zinc-800 p-0.5 overflow-hidden">
           <img

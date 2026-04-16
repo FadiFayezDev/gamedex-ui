@@ -397,4 +397,50 @@ export async function sendFilterData(filterData: FilterModel | null) {
   const list = Array.isArray(data) ? data : data.items;
   return list.map((item) => toGame(item));
 }
+
+export async function exportGame(id: string, title: string = "game") {
+  const res = await fetch(`${ApiRoot}/api/GamePackage/export/${id}`, {
+    method: "POST",
+  })
+
+  if (!res.ok) throw new Error("Export failed")
+
+  // If the backend handles the picker and saving, it might return 200 OK with no body.
+  // We check if there's a blob to download (fallback/legacy).
+  const contentType = res.headers.get("content-type")
+  if (!contentType || !contentType.includes("application/octet-stream")) {
+    return
+  }
+
+  const blob = await res.blob()
+  const downloadUrl = window.URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = downloadUrl
+  a.download = `${title}.gamedex`
+  document.body.appendChild(a)
+  a.click()
+  window.URL.revokeObjectURL(downloadUrl)
+  document.body.removeChild(a)
+}
+
+export async function importGame(file: File) {
+  const formData = new FormData()
+  formData.append("package", file)
+
+  const res = await fetch(`${ApiRoot}/api/GamePackage/import`, {
+    method: "POST",
+    body: formData,
+  })
+
+  if (!res.ok) {
+    if (res.status === 409) {
+      throw new Error("ALREADY_EXISTS")
+    }
+    const errorData = await res.json().catch(() => ({}))
+    throw new Error(errorData.message || "Import failed")
+  }
+
+  const text = await res.text()
+  return text ? JSON.parse(text) : null
+}
 //#endregion

@@ -18,7 +18,7 @@ import PlatformManageSheet from "./PlatformManageSheet"
 import CompanyManageSheet from "./CompanyManageSheet"
 import ModManagerManageSheet from "./Modmanagermanagesheet"
 import { useContext, useEffect } from "react"
-import { sendFilterData } from "@/lib/services/games"
+import { sendFilterData, importGame } from "@/lib/services/games"
 import { PlaylistSelector } from "@/components/gamedex/PlaylistSelector"
 import { getPlaylist } from "@/lib/services/playlist"
 
@@ -68,29 +68,48 @@ useEffect(() => {
     };
   }, []);
 
-  useEffect(() => {
-    const fetchGames = async () => {
-      try {
-        if (filters.playlistId) {
-          // Load games from the selected playlist
-          const playlist = await getPlaylist(filters.playlistId)
-          // The games array from playlist is unknown[], we cast/map it to Game[]
-          // assuming the API returns game objects compatible with our schema
-          const playlistGames = (playlist.games ?? []) as Game[]
-          setGames(playlistGames)
-        } else {
-          // No playlist filter, load all games using filter model
-          const gamesData = await sendFilterData(filterModel)
-          setGames(gamesData)
-        }
-      } catch (error) {
-        console.error("Failed to fetch games:", error)
-        setGames([])
+  const fetchGames = React.useCallback(async () => {
+    try {
+      if (filters.playlistId) {
+        const playlist = await getPlaylist(filters.playlistId)
+        const playlistGames = (playlist.games ?? []) as Game[]
+        setGames(playlistGames)
+      } else {
+        const gamesData = await sendFilterData(filterModel)
+        setGames(gamesData)
       }
+    } catch (error) {
+      console.error("Failed to fetch games:", error)
+      setGames([])
     }
-
-    fetchGames()
   }, [filterModel, filters.playlistId])
+
+  useEffect(() => {
+    fetchGames()
+  }, [fetchGames])
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      toast("Importing...", "info", "Your library is being updated.")
+      await importGame(file)
+      toast("Import Successful", "success", "Your library has been updated.")
+      await fetchGames()
+    } catch (error: any) {
+      console.error("Import failed:", error)
+      if (error.message === "ALREADY_EXISTS") {
+        toast("Game Already Exists", "warning", "This game is already in your library collection.")
+      } else {
+        toast("Import Failed", "error", error.message || "Something went wrong.")
+      }
+    } finally {
+      if (e.target) e.target.value = ""
+    }
+  }
 
   const stats = React.useMemo(() => {
     const favorites = games.filter((game) => game.isFavorite).length
@@ -205,6 +224,7 @@ useEffect(() => {
             onPlatformsClick={() => setPlatformSheetOpen(true)} // Placeholder for platform management
             onCompaniesClick={() => setCompaniesSheetOpen(true)} // Placeholder for company management
             onModManagerClick={() => setModManagerSheetOpen(true)} // Placeholder for mod manager management
+            onImportClick={() => fileInputRef.current?.click()}
           />
 
           <div className="flex-1 overflow-y-auto">
@@ -259,6 +279,14 @@ useEffect(() => {
       <ModManagerManageSheet
         open={modManagerSheetOpen}
         onOpenChange={setModManagerSheetOpen}
+      />
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleImport}
+        className="hidden"
+        accept=".gdex"
       />
     </div>
   )

@@ -2,10 +2,10 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { CheckCircle2, AlertCircle, Info, X } from "lucide-react"
+import { CheckCircle2, AlertCircle, Info, X, AlertTriangle } from "lucide-react"
 import { useSettings } from "./SettingsContext"
 
-export type ToastType = "success" | "error" | "info"
+export type ToastType = "success" | "error" | "info" | "warning"
 
 interface Toast {
   id: string
@@ -61,6 +61,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) 
     success: <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
     error: <AlertCircle className="h-5 w-5 text-red-500" />,
     info: <Info className="h-5 w-5 text-zinc-400" />,
+    warning: <AlertTriangle className="h-5 w-5 text-amber-500" />,
   }
 
   return (

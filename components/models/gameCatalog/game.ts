@@ -8,6 +8,7 @@ import { Mission } from "./mission";
 import { PerformanceProfile } from "./performanceProfile";
 import { RelatedEntity } from "./RelatedEntity";
 import { Requirement } from "./requirement";
+import { Album } from "./Album";
 
 export interface GameDetails {
   id: string; // Guid
@@ -33,6 +34,7 @@ export interface GameDetails {
   dlcs: Dlc[];
   missions: Mission[];
   characterProfiles: CharacterProfile[];
+  albums: Album[];
   genres: RelatedEntity[];
   platforms: RelatedEntity[];
   modManagers: RelatedEntity[];
