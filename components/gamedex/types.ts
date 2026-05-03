@@ -1,4 +1,4 @@
-export type ViewMode = "grid" | "list"
+export type ViewMode = "grid" | "tiles" | "list" | "details"
 
 export type LibraryFilters = {
   query: string

@@ -14,6 +14,13 @@ export const PlatformSchema = z.object({
 
 export type Platform = z.infer<typeof PlatformSchema>
 
+export const TagSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+})
+
+export type Tag = z.infer<typeof TagSchema>
+
 export const GameSchema = z.object({
   id: z.string(),
   title: z.string().min(1),
@@ -22,10 +29,15 @@ export const GameSchema = z.object({
   priceCurrency: z.string().optional().nullable(),
   installSizeGb: z.number().optional().nullable(),
   genreIds: z.array(z.string()),
+  genres: z.array(z.string()).optional(),
   platformId: z.string().optional().nullable(),
+  platforms: z.array(z.string()).optional(),
+  tagIds: z.array(z.string()).default([]),
+  tags: z.array(z.string()).optional(),
   rating: z.number().optional().nullable(),
   criticRating: z.number().optional().nullable(),
   userRating: z.number().optional().nullable(),
+  ageRating: z.number().optional().nullable(),
   isFavorite: z.boolean().default(false),
   isPlayed: z.boolean().default(false),
 })

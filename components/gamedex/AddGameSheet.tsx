@@ -31,7 +31,7 @@ const INITIAL_FORM_STATE: FormState = {
   description: "",
   releaseDate: "",
   ageRating: "0",
-  price: "",
+  price: "0",
   currency: "USD",
   cover: null,
 }
@@ -202,7 +202,7 @@ export function AddGameSheet({ open, onOpenChange, onCreate }: AddGameSheetProps
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-y-auto border-l border-zinc-800 bg-[#0b0b0c] p-0 sm:max-w-[600px]">
+      <SheetContent className="w-full overflow-y-auto border-l border-zinc-800 bg-[#0b0b0c] p-0 sm:max-w-150">
         <div className="flex h-full flex-col p-8">
 
           {/* ── Header ── */}
@@ -238,7 +238,7 @@ export function AddGameSheet({ open, onOpenChange, onCreate }: AddGameSheetProps
 
               <FormField label="Description">
                 <textarea
-                  className={`${inputClass} min-h-[120px] resize-none`}
+                  className={`${inputClass} min-h-30 resize-none`}
                   placeholder="Add a short game synopsis..."
                   value={form.description}
                   onChange={(e) => setField("description", e.target.value)}

@@ -82,6 +82,7 @@ import {
 import { listGenres } from "@/lib/services/genres"
 import { listPlatforms } from "@/lib/services/platforms"
 import { listModManagers } from "@/lib/services/mod-managers"
+import { listTags } from "@/lib/services/tags"
 import {
   createAssociation,
   deleteAssociation,
@@ -90,7 +91,7 @@ import { GameDetails } from "../../../models/gameCatalog/game"
 import { AssociationType } from "../../../enums/AssociationType"
 import { Switch } from "radix-ui"
 import { AssetType } from "../../../enums/AssetType"
-import { ASSOC_GENRE, ASSOC_MOD_MANAGER, ASSOC_PLATFORM } from "./components/Associations"
+import { ASSOC_GENRE, ASSOC_MOD_MANAGER, ASSOC_PLATFORM, ASSOC_TAG } from "./components/Associations"
 import { TrailerModal } from "./components/TrailerModal"
 import { LoadingSkeleton } from "./components/LoadingSkeleton"
 import { HeaderSettingsPopover } from "./components/HeaderSettingsPopover"
@@ -103,6 +104,7 @@ import { Chip } from "./components/Chip"
 import { CompanyPicker } from "./components/CompanyPicker"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
 import { useToast } from "@/components/contexts/ToastContext"
+import { AgeRating } from "@/components/enums/AgeRating"
 
 
 
@@ -585,6 +587,15 @@ export function GameDetailSheet({
     await refresh()
   }
 
+  const addTag = async (entity: PickerEntity) => {
+    await createAssociation({
+      gameId,
+      associatedEntityId: entity.id,
+      type: ASSOC_TAG,
+    })
+    await refresh()
+  }
+
   const addCompany = async (company: PickerEntity, type: AssociationType) => {
     await createAssociation({ gameId, associatedEntityId: company.id, type })
     await refresh()
@@ -616,20 +627,23 @@ export function GameDetailSheet({
     updateGameDetails(gameId, { ageRating: next }).catch(console.error)
   }
 
-  const handleInstallSizeSave = (gbString: string) => {
-    if (!gbString.trim()) {
-      patch({ installSizeBytes: null })
-      setGameInstallSize(gameId, { installSizeBytes: null }).catch(
-        console.error
-      )
-      return
-    }
-    const n = parseFloat(gbString)
-    if (Number.isNaN(n) || n < 0) return
-    const bytes = Math.round(n * 1073741824)
-    patch({ installSizeBytes: bytes })
-    setGameInstallSize(gameId, { installSizeBytes: bytes }).catch(console.error)
+const handleInstallSizeSave = (gbString: string) => {
+  // 1. لو الخانة فاضية بنبعت null
+  if (!gbString.trim()) {
+    patch({ installSizeGb: null })
+    setGameInstallSize(gameId, { installSizeGb: null }).catch(console.error)
+    return
   }
+
+  const n = parseFloat(gbString)
+  
+  // 2. التحقق من أن المدخل رقم صحيح وموجب
+  if (Number.isNaN(n) || n < 0) return
+
+  // 3. بنبعت الرقم "50" زي ما هو من غير أي عمليات حسابية
+  patch({ installSizeGb: n })
+  setGameInstallSize(gameId, { installSizeGb: n }).catch(console.error)
+}
 
   const handlePriceSave = (amount: string) => {
     const currency = game?.priceCurrency?.trim() || "USD"
@@ -951,10 +965,6 @@ export function GameDetailSheet({
 
   // ── Whether to render trailer in bg ───────────────────────────────────────
   const showBgTrailer = showTrailerInHeader && !!trailer
-  const installSizeGb =
-    game?.installSizeBytes != null
-      ? (game.installSizeBytes / 1073741824).toFixed(2)
-      : ""
 
   return (
     <>
@@ -1180,13 +1190,14 @@ export function GameDetailSheet({
                       <div className="text-right">
                         {game.priceAmount != null && (
                           <div className="text-base leading-none font-bold text-white">
-                            {game.priceCurrency ?? "$"}
-                            {game.priceAmount.toFixed(2)}
+                            {game.priceAmount === 0 
+                              ? "Free" 
+                              : `${game.priceCurrency ?? "$"}${game.priceAmount.toFixed(2)}`}
                           </div>
                         )}
-                        {game.ageRating && (
+                        {game.ageRating !== null && game.ageRating !== undefined && (
                           <div className="mt-0.5 text-[9px] tracking-widest text-zinc-600 uppercase">
-                            {game.ageRating}
+                            {getAgeRatingLabel(game.ageRating) || AgeRating[game.ageRating] || "Unrated"}
                           </div>
                         )}
                       </div>
@@ -1283,9 +1294,9 @@ export function GameDetailSheet({
                               Install Size
                             </div>
                             <InlineField
-                              value={installSizeGb}
+                              value={game.installSizeGb != null ? String(game.installSizeGb) : ""}
                               displayValue={
-                                game.installSizeBytes ? formatBytes(game.installSizeBytes) : "—"
+                                game.installSizeGb ? String(game.installSizeGb) : "—"
                               }
                               inputType="number"
                               min={0}
@@ -1314,7 +1325,9 @@ export function GameDetailSheet({
                               value={game.priceAmount != null ? String(game.priceAmount) : ""}
                               displayValue={
                                 game.priceAmount != null
-                                  ? `${game.priceCurrency ?? "$"}${game.priceAmount.toFixed(2)}`
+                                  ? game.priceAmount === 0 
+                                    ? "Free"
+                                    : `${game.priceCurrency ?? "$"}${game.priceAmount.toFixed(2)}`
                                   : "—"
                               }
                               inputType="number"
@@ -1546,6 +1559,36 @@ export function GameDetailSheet({
                             label={m.name}
                             onRemove={() =>
                               removeAssociation(m.associationId, "modManagers")
+                            }
+                          />
+                        ))
+                      )}
+                    </div>
+                  </Section>
+
+                  <Section
+                    icon={Layers}
+                    title="Tags"
+                    action={
+                      <EntityPicker
+                        fetchFn={listTags}
+                        linkedNames={(game.tags || []).map((t) => t.name)}
+                        onSelect={addTag}
+                      />
+                    }
+                  >
+                    <div className="flex flex-wrap gap-1.5">
+                      {(game.tags || []).length === 0 ? (
+                        <p className="text-xs text-zinc-600 italic">
+                          None added
+                        </p>
+                      ) : (
+                        (game.tags || []).map((t) => (
+                          <Chip
+                            key={t.id}
+                            label={t.name}
+                            onRemove={() =>
+                              removeAssociation(t.associationId, "tags")
                             }
                           />
                         ))

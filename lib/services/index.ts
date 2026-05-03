@@ -56,3 +56,10 @@ export {
   getModManager,
   updateModManager,
 } from "@/lib/services/mod-managers"
+
+export {
+  listTags,
+  createTag,
+  getTag,
+  updateTag,
+} from "@/lib/services/tags"

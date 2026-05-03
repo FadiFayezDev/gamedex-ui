@@ -3,5 +3,8 @@ export enum AssociationType {
   Publisher = 2,
   Platform = 3,
   Genre = 4,
-  ModManager = 5
+  ModManager = 5,
+  Playlist = 6,
+  Album = 7,
+  Tag = 8
 }

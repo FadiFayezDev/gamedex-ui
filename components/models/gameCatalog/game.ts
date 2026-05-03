@@ -21,7 +21,7 @@ export interface GameDetails {
   rating?: number | null;
   isFavorite?: boolean;
   isPlayed?: boolean;
-  installSizeBytes: number | null;
+  installSizeGb: number | null;
   priceAmount: number | null;
   priceCurrency: string | null;
   coverUrl: string | null;
@@ -39,4 +39,5 @@ export interface GameDetails {
   platforms: RelatedEntity[];
   modManagers: RelatedEntity[];
   companies: CompanyAssociation[];
+  tags: RelatedEntity[];
 }

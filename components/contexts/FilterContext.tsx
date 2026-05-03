@@ -9,8 +9,8 @@ import {
   useEffect,
   useCallback,
 } from "react";
-import { FilterModel, defaultFilterModel, fetchGenresData, fetchPlatformsData, fetchCompaniesData, fetchModManagersData } from "../models/filterModel";
-import { Genre, Platform } from "@/lib/schemas/game";
+import { FilterModel, defaultFilterModel, fetchGenresData, fetchPlatformsData, fetchCompaniesData, fetchModManagersData, fetchTagsData } from "../models/filterModel";
+import { Genre, Platform, Tag } from "@/lib/schemas/game";
 import { Company } from "../models/ecosystem/Company";
 import { ModManager } from "@/lib/services/mod-managers";
 
@@ -24,9 +24,10 @@ type FilterContextType = {
     platforms: Platform[];
     companies: Company[];
     modManagers: ModManager[];
+    tags: Tag[];
   };
   
-  refreshOptions: (type?: "genres" | "platforms" | "companies" | "modManagers") => Promise<void>;
+  refreshOptions: (type?: "genres" | "platforms" | "companies" | "modManagers" | "tags") => Promise<void>;
 };
 
 export const FilterContext = createContext<FilterContextType>({
@@ -37,6 +38,7 @@ export const FilterContext = createContext<FilterContextType>({
     platforms: [],
     companies: [],
     modManagers: [],
+    tags: [],
   },
   refreshOptions: async () => { },
 });
@@ -48,27 +50,31 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     platforms: Platform[];
     companies: Company[];
     modManagers: ModManager[];
+    tags: Tag[];
   }>({
     genres: [],
     platforms: [],
     companies: [],
     modManagers: [],
+    tags: [],
   });
 
-  const refreshOptions = useCallback(async (type?: "genres" | "platforms" | "companies" | "modManagers") => {
+  const refreshOptions = useCallback(async (type?: "genres" | "platforms" | "companies" | "modManagers" | "tags") => {
     try {
       if (!type) {
-        const [g, p, c, m] = await Promise.all([
+        const [g, p, c, m, t] = await Promise.all([
           fetchGenresData(),
           fetchPlatformsData(),
           fetchCompaniesData(),
           fetchModManagersData(),
+          fetchTagsData(),
         ]);
         setOptions({
           genres: g,
           platforms: p,
           companies: c,
           modManagers: m,
+          tags: t,
         });
       } else {
         let newData: any[] = [];
@@ -77,6 +83,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
           case "platforms": newData = await fetchPlatformsData(); break;
           case "companies": newData = await fetchCompaniesData(); break;
           case "modManagers": newData = await fetchModManagersData(); break;
+          case "tags": newData = await fetchTagsData(); break;
         }
         setOptions(prev => ({ ...prev, [type]: newData }));
       }

@@ -26,8 +26,16 @@ export async function request<T>(
   options: RequestOptions,
   schema: z.ZodType<T>
 ) {
-  const headers = {
-    ...(options.headers ?? {}),
+  let headers: Record<string, string> = {}
+
+  if (options.headers) {
+    if (options.headers instanceof Headers) {
+      headers = Object.fromEntries(options.headers.entries())
+    } else if (Array.isArray(options.headers)) {
+      headers = Object.fromEntries(options.headers)
+    } else {
+      headers = options.headers as Record<string, string>
+    }
   }
 
   let body: BodyInit | undefined
@@ -47,7 +55,9 @@ export async function request<T>(
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
     console.error("Server Error Details:", errorData)
-    throw new Error(`Request failed: ${response.status} - ${JSON.stringify(errorData)}`)
+    throw new Error(
+      `Request failed: ${response.status} - ${JSON.stringify(errorData)}`
+    )
   }
 
   const data = await parseJsonResponse(response)

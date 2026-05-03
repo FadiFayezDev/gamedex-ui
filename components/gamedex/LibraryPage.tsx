@@ -17,8 +17,9 @@ import GenreManageSheet from "./GenreManageSheet"
 import PlatformManageSheet from "./PlatformManageSheet"
 import CompanyManageSheet from "./CompanyManageSheet"
 import ModManagerManageSheet from "./Modmanagermanagesheet"
+import TagManageSheet from "./TagManageSheet"
 import { useContext, useEffect } from "react"
-import { sendFilterData, importGame } from "@/lib/services/games"
+import { sendFilterData, importGame, normalizeGame } from "@/lib/services/games"
 import { PlaylistSelector } from "@/components/gamedex/PlaylistSelector"
 import { getPlaylist } from "@/lib/services/playlist"
 
@@ -33,7 +34,7 @@ const defaultFilters: LibraryFilters = {
 }
 
 export function LibraryPage() {
-  const { filterModel, options } = useContext(FilterContext)
+  const { filterModel } = useContext(FilterContext)
   const [games, setGames] = React.useState<Game[]>([])
   const [filters, setFilters] = React.useState<LibraryFilters>(defaultFilters)
   const [viewMode, setViewMode] = React.useState<ViewMode>("grid")
@@ -44,35 +45,45 @@ export function LibraryPage() {
   const [platformSheetOpen, setPlatformSheetOpen] = React.useState(false)
   const [companiesSheetOpen, setCompaniesSheetOpen] = React.useState(false)
   const [modManagerSheetOpen, setModManagerSheetOpen] = React.useState(false)
+  const [tagsSheetOpen, setTagsSheetOpen] = React.useState(false)
 
-useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // سنطبع في الكونسول لنرى ما الذي يقرأه المتصفح فعلياً عند الضغط
-      console.log("Key pressed:", event.key, "Ctrl:", event.ctrlKey, "Alt:", event.altKey);
+      console.log(
+        "Key pressed:",
+        event.key,
+        "Ctrl:",
+        event.ctrlKey,
+        "Alt:",
+        event.altKey
+      )
 
       // الاختصار: Alt + S (أقل تعارضاً من Ctrl)
       if (event.altKey && event.key.toLowerCase() === "n") {
-        event.preventDefault();
-        event.stopPropagation(); // لمنع الحدث من الصعود لأي عنصر آخر
-        
-        console.log("Success! Shortcut triggered.");
-        setIsSheetOpen(true);
+        event.preventDefault()
+        event.stopPropagation() // لمنع الحدث من الصعود لأي عنصر آخر
+
+        console.log("Success! Shortcut triggered.")
+        setIsSheetOpen(true)
       }
-    };
+    }
 
     // نستخدم capture: true لضمان التقاط الحدث في مرحلة البداية
-    window.addEventListener("keydown", handleKeyDown, true);
+    window.addEventListener("keydown", handleKeyDown, true)
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown, true);
-    };
-  }, []);
+      window.removeEventListener("keydown", handleKeyDown, true)
+    }
+  }, [])
 
   const fetchGames = React.useCallback(async () => {
     try {
       if (filters.playlistId) {
         const playlist = await getPlaylist(filters.playlistId)
-        const playlistGames = (playlist.games ?? []) as Game[]
+        const playlistGames = (playlist.games ?? []).map((game) =>
+          normalizeGame(game)
+        )
         setGames(playlistGames)
       } else {
         const gamesData = await sendFilterData(filterModel)
@@ -85,8 +96,11 @@ useEffect(() => {
   }, [filterModel, filters.playlistId])
 
   useEffect(() => {
-    fetchGames()
-  }, [fetchGames])
+    fetchGames();
+    const handler = () => fetchGames();
+    window.addEventListener("playlist-updated", handler);
+    return () => window.removeEventListener("playlist-updated", handler);
+  }, [fetchGames]);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
@@ -99,12 +113,18 @@ useEffect(() => {
       await importGame(file)
       toast("Import Successful", "success", "Your library has been updated.")
       await fetchGames()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Import failed:", error)
-      if (error.message === "ALREADY_EXISTS") {
-        toast("Game Already Exists", "warning", "This game is already in your library collection.")
+      const message =
+        error instanceof Error ? error.message : "Something went wrong."
+      if (message === "ALREADY_EXISTS") {
+        toast(
+          "Game Already Exists",
+          "warning",
+          "This game is already in your library collection."
+        )
       } else {
-        toast("Import Failed", "error", error.message || "Something went wrong.")
+        toast("Import Failed", "error", message)
       }
     } finally {
       if (e.target) e.target.value = ""
@@ -200,14 +220,17 @@ useEffect(() => {
     }
   }
 
-  const handleUpdateGame = React.useCallback((updatedFields: Partial<Game> & { id: string }) => {
-    setGames((prev) =>
-      prev.map((g) => (g.id === updatedFields.id ? { ...g, ...updatedFields } : g))
-    )
-    toast("Library Updated", "info")
-  }, [toast])
-
-
+  const handleUpdateGame = React.useCallback(
+    (updatedFields: Partial<Game> & { id: string }) => {
+      setGames((prev) =>
+        prev.map((g) =>
+          g.id === updatedFields.id ? { ...g, ...updatedFields } : g
+        )
+      )
+      toast("Library Updated", "info")
+    },
+    [toast]
+  )
 
   return (
     <div className="min-h-svh bg-[#09090b] text-zinc-100">
@@ -224,26 +247,27 @@ useEffect(() => {
             onPlatformsClick={() => setPlatformSheetOpen(true)} // Placeholder for platform management
             onCompaniesClick={() => setCompaniesSheetOpen(true)} // Placeholder for company management
             onModManagerClick={() => setModManagerSheetOpen(true)} // Placeholder for mod manager management
+            onTagsClick={() => setTagsSheetOpen(true)} // Placeholder for tag management
             onImportClick={() => fileInputRef.current?.click()}
           />
 
           <div className="flex-1 overflow-y-auto">
             <div className="sticky z-10 flex items-center justify-between bg-[#09090b]/80 px-8 py-4 backdrop-blur-md">
-
-              <div className="flex gap-2 items-center">
+              <div className="flex items-center gap-2">
                 <h2 className="text-sm font-medium text-zinc-400">
                   Showing {filters.playlistId ? "Playlist" : "Entire Library"}
                 </h2>
                 <PlaylistSelector
                   selectedPlaylistId={filters.playlistId}
-                  onSelect={(id) => setFilters(prev => ({ ...prev, playlistId: id }))}
+                  onSelect={(id) =>
+                    setFilters((prev) => ({ ...prev, playlistId: id }))
+                  }
                 />
               </div>
               <ViewToggle value={viewMode} onChange={setViewMode} />
             </div>
 
-
-            <div className="px-8 pb-10">
+            <div className="px-8 py-2 pb-10">
               <GameGrid
                 games={filteredGames}
                 view={viewMode}
@@ -279,6 +303,11 @@ useEffect(() => {
       <ModManagerManageSheet
         open={modManagerSheetOpen}
         onOpenChange={setModManagerSheetOpen}
+      />
+
+      <TagManageSheet
+        open={tagsSheetOpen}
+        onOpenChange={setTagsSheetOpen}
       />
 
       <input

@@ -10,7 +10,7 @@ const ApiModManagerSchema = z
     id: z.coerce.string().optional(),
     name: z.string().optional(),
     title: z.string().optional(),
-    description: z.string().optional(),
+    description: z.string().optional().nullable(),
   })
   .passthrough()
 
@@ -28,7 +28,7 @@ const EmptyResponseSchema = z.unknown().nullable()
 export type ModManager = {
   id: string
   name: string
-  description?: string
+  description?: string | null
 }
 
 const slugify = (value: string) =>

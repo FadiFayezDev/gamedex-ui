@@ -52,17 +52,17 @@ function DualRangeSlider({
     if (type === "both") {
       startPos.current = { x: e.clientX, val: [...value] }
     }
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    ; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
   }
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!dragging.current || !railRef.current) return
-    
+
     if (dragging.current === "both" && startPos.current) {
       const rect = railRef.current.getBoundingClientRect()
       const deltaX = e.clientX - startPos.current.x
       const deltaVal = Math.round((deltaX / rect.width) * (max - min))
-      
+
       let nextMin = startPos.current.val[0] + deltaVal
       let nextMax = startPos.current.val[1] + deltaVal
 
@@ -113,7 +113,7 @@ function DualRangeSlider({
         >
           {/* Background Track */}
           <div className="absolute inset-x-0 h-0.75 rounded-full bg-zinc-800" />
-          
+
           {/* Active Range Bar (قابل للسحب الآن) */}
           <div
             className="absolute h-0.75 cursor-grab rounded-full bg-zinc-400 active:cursor-grabbing hover:bg-zinc-300 transition-colors"
@@ -188,7 +188,7 @@ function SidebarFilters() {
     { key: "platforms", title: "Platforms", items: options.platforms.map(p => p.name) },
     { key: "companies", title: "Companies", items: options.companies.map(c => c.name) },
     { key: "modManagers", title: "Mod Managers", items: options.modManagers.map(m => m.name) },
-    { key: "tags", title: "Tags", items: ["Multiplayer", "Single Player", "Controller Support"] },
+    { key: "tags", title: "Tags", items: options.tags.map(t => t.name) },
   ]
 
   const initialFilters = Object.fromEntries(
@@ -382,18 +382,16 @@ function SidebarFilters() {
                     <button
                       key={item}
                       onClick={() => toggleValue(section.key, item)}
-                      className={`group flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors ${
-                        checked
+                      className={`group flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors ${checked
                           ? "bg-zinc-800/70 text-zinc-200"
                           : "text-zinc-500 hover:bg-zinc-800/40 hover:text-zinc-300"
-                      }`}
+                        }`}
                     >
                       <div
-                        className={`flex h-3 w-3 shrink-0 items-center justify-center rounded-[3px] border transition-colors ${
-                          checked
+                        className={`flex h-3 w-3 shrink-0 items-center justify-center rounded-[3px] border transition-colors ${checked
                             ? "border-zinc-300 bg-zinc-300"
                             : "border-zinc-700 group-hover:border-zinc-500"
-                        }`}
+                          }`}
                       >
                         {checked && (
                           <svg

@@ -1,12 +1,12 @@
 import { Genre } from "@/lib/schemas/game";
-import { Platform } from "@/lib/schemas/game";
+import { Platform, Tag } from "@/lib/schemas/game";
 
 // models/filterModel.ts
 import { ApiRoot } from "@/components/root/root";
 import { useEffect, useState } from "react";
 import { Company } from "./ecosystem/Company";
 import { listModManagers, ModManager } from "@/lib/services/mod-managers";
-import { getGenre, listCompanies, listGenres, listPlatforms } from "@/lib/services";
+import { getGenre, listCompanies, listGenres, listPlatforms, listTags } from "@/lib/services";
 
 export type FilterModel = {
   checkboxes: Record<string, string[]>;
@@ -25,7 +25,7 @@ export const defaultFilterModel: FilterModel = {
     platforms: [],
     companies: [],
     modManagers: [],
-    tags: ["Multiplayer", "Single Player", "Controller Support"],
+    tags: [],
   },
   range: {
     price: { min: 0, max: 100 },
@@ -72,17 +72,27 @@ export const fetchModManagersData = async (): Promise<ModManager[]> => {
   }
 };
 
+export const fetchTagsData = async (): Promise<Tag[]> => {
+  try {
+    return await listTags();
+  } catch (err) {
+    console.error("Exception fetching tags:", err);
+    return [];
+  }
+};
+
 // 👇 hook بيرجعلك الموديل مع خيارات الفلتر محملة (مفيد لو لسه في حد بيستخدمه)
 export const useFilterModel = () => {
   const [filterModel, setFilterModel] = useState<FilterModel>(defaultFilterModel);
 
   useEffect(() => {
     const loadMetadata = async () => {
-      const [genres, platforms, companies, modManagers] = await Promise.all([
+      const [genres, platforms, companies, modManagers, tags] = await Promise.all([
         fetchGenresData(),
         fetchPlatformsData(),
         fetchCompaniesData(),
-        fetchModManagersData()
+        fetchModManagersData(),
+        fetchTagsData()
       ]);
 
       setFilterModel((prev) => ({
@@ -92,7 +102,8 @@ export const useFilterModel = () => {
           genres: genres.map(g => g.name),
           platforms: platforms.map(p => p.name),
           companies: companies.map(c => c.name),
-          modManagers: modManagers.map(m => m.name)
+          modManagers: modManagers.map(m => m.name),
+          tags: tags.map(t => t.name)
         },
       }));
     };
@@ -108,3 +119,4 @@ export const fetchGenres = async () => (await fetchGenresData()).map(g => g.name
 export const fetchPlatforms = async () => (await fetchPlatformsData()).map(p => p.name);
 export const fetchCompanies = async () => (await fetchCompaniesData()).map(c => c.name);
 export const fetchModManagers = async () => (await fetchModManagersData()).map(m => m.name);
+export const fetchTags = async () => (await fetchTagsData()).map(t => t.name);

@@ -24,9 +24,12 @@ export const AddGameSchema = z.object({
   ageRating: z.preprocess(numberFromInput, z.nativeEnum(AgeRating).optional()),
   price: z.preprocess(
     numberFromInput,
-    z.number().min(0, "Price must be 0 or higher.")
+    z.number().min(0, "Price must be 0 or higher.").optional()
   ),
   currency: z.string().min(1, "Currency is required.").default("USD"),
+  genreId: z.preprocess(stringOrEmptyToUndefined, z.string().optional()),
+  platformId: z.preprocess(stringOrEmptyToUndefined, z.string().optional()),
+  rating: z.preprocess(numberFromInput, z.number().min(0).max(5).optional()),
   cover: z.instanceof(File).optional(),
 })
 

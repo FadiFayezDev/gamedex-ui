@@ -40,24 +40,129 @@ const makeId = () =>
   globalThis.crypto?.randomUUID?.() ??
   `game-${Math.random().toString(36).slice(2, 10)}`
 
-const toGame = (apiGame: any): Game => {
-  const getString = (v: any) => (typeof v === "string" ? v : undefined)
-  const getNumber = (v: any) => (typeof v === "number" ? v : undefined)
+const getString = (value: unknown) =>
+  typeof value === "string" ? value : undefined
+
+const getNumber = (value: unknown) => {
+  if (typeof value === "number") return value
+  if (typeof value === "string") {
+    const parsed = parseFloat(value)
+    if (!Number.isNaN(parsed)) return parsed
+  }
+  return undefined
+}
+
+const getRelatedEntityId = (value: unknown) => {
+  if (!value || typeof value !== "object") return undefined
+  return getString((value as { id?: unknown; Id?: unknown }).id) ??
+    getString((value as { id?: unknown; Id?: unknown }).Id)
+}
+
+const getRelatedEntityName = (value: unknown) => {
+  if (typeof value === "string") return value
+  if (!value || typeof value !== "object") return undefined
+  return getString((value as { name?: unknown; Name?: unknown }).name) ??
+    getString((value as { name?: unknown; Name?: unknown }).Name)
+}
+
+const mapRelatedEntityIds = (values: unknown[]) =>
+  values.map(getRelatedEntityId).filter((value): value is string => Boolean(value))
+
+const mapRelatedEntityNames = (values: unknown[]) =>
+  values
+    .map(getRelatedEntityName)
+    .filter((value): value is string => Boolean(value))
+
+export const normalizeGame = (apiGame: unknown): Game => {
+  const source = apiGame as Record<string, unknown>
+
+  const rawGenres = Array.isArray(source.genres)
+    ? source.genres
+    : Array.isArray(source.Genres)
+      ? source.Genres
+      : []
+  const mappedGenreIds = mapRelatedEntityIds(rawGenres)
+  const mappedGenres = mapRelatedEntityNames(rawGenres)
+
+  const rawPlatforms = Array.isArray(source.platforms)
+    ? source.platforms
+    : Array.isArray(source.Platforms)
+      ? source.Platforms
+      : []
+  const firstPlatformId =
+    rawPlatforms.length > 0
+      ? typeof rawPlatforms[0] === "string"
+        ? rawPlatforms[0]
+        : getRelatedEntityId(rawPlatforms[0]) ?? null
+      : null
+  const mappedPlatforms = mapRelatedEntityNames(rawPlatforms)
+
+  const rawTags = Array.isArray(source.tags)
+    ? source.tags
+    : Array.isArray(source.Tags)
+      ? source.Tags
+      : []
+  const mappedTagIds = mapRelatedEntityIds(rawTags)
+  const mappedTags = mapRelatedEntityNames(rawTags)
 
   return GameSchema.parse({
-    id: apiGame.id ?? apiGame.Id ?? makeId(),
-    title: getString(apiGame.title) ?? getString(apiGame.Title) ?? getString(apiGame.name) ?? getString(apiGame.Name) ?? "Untitled Game",
-    coverUrl: getString(apiGame.coverUrl) ?? getString(apiGame.CoverUrl) ?? getString(apiGame.cover) ?? getString(apiGame.Cover) ?? null,
-    priceAmount: getNumber(apiGame.priceAmount) ?? getNumber(apiGame.PriceAmount) ?? getNumber(apiGame.price) ?? getNumber(apiGame.Price) ?? getNumber(apiGame.amount) ?? getNumber(apiGame.Amount) ?? null,
-    priceCurrency: getString(apiGame.priceCurrency) ?? getString(apiGame.PriceCurrency) ?? getString(apiGame.currency) ?? getString(apiGame.Currency) ?? null,
-    installSizeGb: getNumber(apiGame.installSizeGb) ?? getNumber(apiGame.InstallSizeGb) ?? getNumber(apiGame.installSize) ?? getNumber(apiGame.InstallSize) ?? null,
-    genreIds: Array.isArray(apiGame.genreIds) ? apiGame.genreIds : (Array.isArray(apiGame.GenreIds) ? apiGame.GenreIds : []),
-    platformId: getString(apiGame.platformId) ?? getString(apiGame.PlatformId) ?? getString(apiGame.platform?.id) ?? getString(apiGame.Platform?.Id) ?? null,
-    rating: getNumber(apiGame.rating) ?? getNumber(apiGame.Rating) ?? null,
-    criticRating: getNumber(apiGame.criticRating) ?? getNumber(apiGame.CriticRating) ?? null,
-    userRating: getNumber(apiGame.userRating) ?? getNumber(apiGame.UserRating) ?? null,
-    isFavorite: !!(apiGame.isFavorite ?? apiGame.IsFavorite ?? false),
-    isPlayed: !!(apiGame.isPlayed ?? apiGame.IsPlayed ?? false),
+    id: getString(source.id) ?? getString(source.Id) ?? makeId(),
+    title:
+      getString(source.title) ??
+      getString(source.Title) ??
+      getString(source.name) ??
+      getString(source.Name) ??
+      "Untitled Game",
+    coverUrl:
+      getString(source.coverUrl) ??
+      getString(source.CoverUrl) ??
+      getString(source.cover) ??
+      getString(source.Cover) ??
+      null,
+    priceAmount:
+      getNumber(source.priceAmount) ??
+      getNumber(source.PriceAmount) ??
+      getNumber(source.price) ??
+      getNumber(source.Price) ??
+      getNumber(source.amount) ??
+      getNumber(source.Amount) ??
+      null,
+    priceCurrency:
+      getString(source.priceCurrency) ??
+      getString(source.PriceCurrency) ??
+      getString(source.currency) ??
+      getString(source.Currency) ??
+      null,
+    installSizeGb:
+      getNumber(source.installSizeBytes) ??
+      getNumber(source.InstallSizeBytes) ??
+      getNumber(source.installSizeGb) ??
+      getNumber(source.InstallSizeGb) ??
+      getNumber(source.installSize) ??
+      getNumber(source.InstallSize) ??
+      null,
+    genreIds:
+      Array.isArray(source.genreIds) && source.genreIds.length > 0
+        ? source.genreIds.filter((value): value is string => typeof value === "string")
+        : mappedGenreIds,
+    genres: mappedGenres.length > 0 ? mappedGenres : undefined,
+    platformId:
+      getString(source.platformId) ??
+      getString(source.PlatformId) ??
+      getRelatedEntityId(source.platform) ??
+      getRelatedEntityId(source.Platform) ??
+      firstPlatformId,
+    platforms: mappedPlatforms.length > 0 ? mappedPlatforms : undefined,
+    tagIds: mappedTagIds,
+    tags: mappedTags.length > 0 ? mappedTags : undefined,
+    rating: getNumber(source.rating) ?? getNumber(source.Rating) ?? null,
+    criticRating:
+      getNumber(source.criticRating) ?? getNumber(source.CriticRating) ?? null,
+    userRating:
+      getNumber(source.userRating) ?? getNumber(source.UserRating) ?? null,
+    ageRating: getNumber(source.ageRating) ?? getNumber(source.AgeRating) ?? null,
+    isFavorite: !!(source.isFavorite ?? source.IsFavorite ?? false),
+    isPlayed: !!(source.isPlayed ?? source.IsPlayed ?? false),
   })
 }
 //#endregion
@@ -71,7 +176,7 @@ export async function listGames() {
   )
   if (!data) return []
   const list = Array.isArray(data) ? data : data.items
-  return list.map((item) => toGame(item))
+  return list.map((item) => normalizeGame(item))
 }
 
 export async function getGame(id: string) {
@@ -105,7 +210,7 @@ export async function createGame(input: AddGameInput) {
     ...(data || {})
   }
 
-  return toGame(mergedData)
+  return normalizeGame(mergedData)
 }
 
 export async function deleteGame(id: string) {
@@ -159,21 +264,23 @@ export async function setGamePrice(id: string, input: SetGamePriceRequest) {
   )
 }
 
-export type SetGameInstallSizeRequest = { installSizeBytes?: number | null }
+// تحديث الـ Type والـ Function
+export type SetGameInstallSizeRequest = { installSizeGb?: number | null }
+
 export async function setGameInstallSize(
   id: string,
   input: SetGameInstallSizeRequest
 ) {
   await request(
     `${ApiRoot}/api/v1/games/${id}/install-size`,
-    { method: "PUT", body: input },
+    { method: "PUT", body: input }, // هتبعت { "installSizeGb": 50 }
     EmptyResponseSchema
   )
 }
 //#endregion
 
 //#region Requirements & Technical Profiles
-export async function addRequirement(id: string, input: any) {
+export async function addRequirement(id: string, input: unknown) {
   await request(
     `${ApiRoot}/api/v1/games/${id}/requirements`,
     { method: "POST", body: input },
@@ -189,7 +296,7 @@ export async function deleteRequirement(id: string, requirementId: string) {
   )
 }
 
-export async function addPerformanceProfile(id: string, input: any) {
+export async function addPerformanceProfile(id: string, input: unknown) {
   await request(
     `${ApiRoot}/api/v1/games/${id}/performance-profiles`,
     { method: "POST", body: input },
@@ -207,7 +314,7 @@ export async function deletePerformanceProfile(id: string, profileId: string) {
 //#endregion
 
 //#region Gameplay Content (Missions, DLCs, Characters, Controls)
-export async function addMission(id: string, input: any) {
+export async function addMission(id: string, input: unknown) {
   await request(
     `${ApiRoot}/api/v1/games/${id}/missions`,
     { method: "POST", body: input },
@@ -223,7 +330,7 @@ export async function deleteMission(id: string, missionId: string) {
   )
 }
 
-export async function addCharacterProfile(id: string, input: any) {
+export async function addCharacterProfile(id: string, input: unknown) {
   await request(
     `${ApiRoot}/api/v1/games/${id}/character-profiles`,
     { method: "POST", body: input },
@@ -242,7 +349,7 @@ export async function deleteCharacterProfile(
   )
 }
 
-export async function addDlc(id: string, input: any) {
+export async function addDlc(id: string, input: unknown) {
   await request(
     `${ApiRoot}/api/v1/games/${id}/dlcs`,
     { method: "POST", body: input },
@@ -258,7 +365,7 @@ export async function deleteDlc(id: string, dlcId: string) {
   )
 }
 
-export async function addControlMapping(id: string, input: any) {
+export async function addControlMapping(id: string, input: unknown) {
   await request(
     `${ApiRoot}/api/v1/games/${id}/control-mappings`,
     { method: "POST", body: input },
@@ -395,7 +502,7 @@ export async function sendFilterData(filterData: FilterModel | null) {
 
   if (!data) return [];
   const list = Array.isArray(data) ? data : data.items;
-  return list.map((item) => toGame(item));
+  return list.map((item) => normalizeGame(item));
 }
 
 export async function exportGame(id: string, title: string = "game") {

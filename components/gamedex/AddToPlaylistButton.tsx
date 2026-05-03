@@ -7,6 +7,7 @@ import {
   listPlaylists,
   getPlaylist,
   addGameToPlaylist,
+  removeGameFromPlaylist,
   PlaylistSummary,
 } from "@/lib/services/playlist";
 
@@ -26,8 +27,9 @@ export function AddToPlaylistButton({ gameId }: Props) {
   const btnRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // When dropdown opens: (1) fetch playlists, (2) check which ones contain this game
+  // When dropdown opens or component mounts: (1) fetch playlists, (2) check which ones contain this game
   const loadData = async () => {
+    // Only set loading if not already loaded or if opening dropdown
     setIsLoading(true);
     try {
       const summaries = await listPlaylists();
@@ -55,15 +57,25 @@ export function AddToPlaylistButton({ gameId }: Props) {
     }
   };
 
+  // Load initial state on mount
+  useEffect(() => {
+    loadData();
+  }, [gameId]);
+
   const openDropdown = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!btnRef.current) return;
     const rect = btnRef.current.getBoundingClientRect();
-    setDropdownPos({ top: rect.top, left: rect.left });
-    setIsOpen((prev) => {
-      if (!prev) loadData(); // only load when opening
-      return !prev;
-    });
+    
+    // Check if dropdown would go off screen
+    const dropdownWidth = 224; // w-56
+    let left = rect.left;
+    if (left + dropdownWidth > window.innerWidth - 16) {
+      left = rect.right - dropdownWidth;
+    }
+    
+    setDropdownPos({ top: rect.top, left });
+    setIsOpen((prev) => !prev);
   };
 
   useEffect(() => {
@@ -81,23 +93,32 @@ export function AddToPlaylistButton({ gameId }: Props) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleAdd = async (e: React.MouseEvent, playlistId: string) => {
+  const handleToggle = async (e: React.MouseEvent, playlistId: string) => {
     e.stopPropagation();
-    if (adding || linkedIds.has(playlistId)) return;
+    if (adding) return;
+    
+    const isAlready = linkedIds.has(playlistId);
     setAdding(playlistId);
+    
     try {
-      await addGameToPlaylist(playlistId, gameId);
-      // Mark as linked
-      setLinkedIds((prev) => new Set([...prev, playlistId]));
-      setAdded(playlistId);
+      if (isAlready) {
+        await removeGameFromPlaylist(playlistId, gameId);
+        setLinkedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(playlistId);
+          return next;
+        });
+      } else {
+        await addGameToPlaylist(playlistId, gameId);
+        setLinkedIds((prev) => new Set([...prev, playlistId]));
+        setAdded(playlistId);
+        setTimeout(() => setAdded(null), 800);
+      }
+      
       // Notify PlaylistSelector to update counts
       window.dispatchEvent(new Event("playlist-updated"));
-      setTimeout(() => {
-        setAdded(null);
-        setIsOpen(false);
-      }, 800);
     } catch (err) {
-      console.error("Failed to add game to playlist", err);
+      console.error("Failed to toggle game in playlist", err);
     } finally {
       setAdding(null);
     }
@@ -140,11 +161,11 @@ export function AddToPlaylistButton({ gameId }: Props) {
                 return (
                   <button
                     key={playlist.id}
-                    onClick={(e) => handleAdd(e, playlist.id!)}
-                    disabled={!!adding || isAlready}
-                    className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors disabled:cursor-default ${
+                    onClick={(e) => handleToggle(e, playlist.id!)}
+                    disabled={!!adding}
+                    className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
                       isAlready
-                        ? "text-zinc-500"
+                        ? "bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"
                         : "text-zinc-300 hover:bg-zinc-800/60 hover:text-white"
                     }`}
                   >
