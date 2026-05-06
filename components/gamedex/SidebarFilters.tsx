@@ -327,7 +327,7 @@ function SidebarFilters() {
           />
 
           <select
-            className="w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-2.5 py-1.5 text-xs text-zinc-300 focus:ring-1 focus:ring-zinc-700 focus:outline-none"
+            className="w-full cursor-pointer rounded-md border border-zinc-800 bg-zinc-900/50 px-2.5 py-1.5 text-xs text-zinc-300 focus:outline-none focus-visible:ring-1 focus-visible:ring-zinc-700"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >

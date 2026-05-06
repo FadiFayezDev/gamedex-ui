@@ -137,7 +137,7 @@ export function PlaylistSelector({ selectedPlaylistId, onSelect }: Props) {
           {/* All Games */}
           <button
             onClick={() => { onSelect(null); setIsOpen(false); }}
-            className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+            className={`w-full px-3 py-2 text-left text-xs transition-colors ${
               selectedPlaylistId === null
                 ? "bg-zinc-700/40 text-white"
                 : "text-zinc-300 hover:bg-zinc-800/60 hover:text-white"
@@ -160,7 +160,7 @@ export function PlaylistSelector({ selectedPlaylistId, onSelect }: Props) {
                 }`}
               >
                 <button
-                  className="min-w-0 flex-1 truncate text-left text-sm"
+                  className="min-w-0 flex-1 truncate text-left text-xs"
                   onClick={() => { onSelect(playlist.id!); setIsOpen(false); }}
                 >
                   {playlist.name}
@@ -229,7 +229,7 @@ export function PlaylistSelector({ selectedPlaylistId, onSelect }: Props) {
           ) : (
             <button
               onClick={() => setShowCreateForm(true)}
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-zinc-500 transition-colors hover:bg-zinc-800/60 hover:text-white"
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-zinc-500 transition-colors hover:bg-zinc-800/60 hover:text-white"
             >
               <Plus className="h-3.5 w-3.5" />
               New playlist

@@ -147,12 +147,7 @@ function PlatformRow({ platform, onDelete, onRename }: PlatformRowProps) {
         </>
       ) : (
         <>
-          <div className="flex flex-col">
-            <span className="text-xs text-zinc-200">{platform.name}</span>
-            <span className="text-[10px] text-zinc-500 pl-2">
-              Tes t platform description that is quite long to see how it looks when it overflows.
-            </span>
-          </div>
+          <span className="text-xs text-zinc-200">{platform.name}</span>
           <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
             <button
               onClick={startEdit}
