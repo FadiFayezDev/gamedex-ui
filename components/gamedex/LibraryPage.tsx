@@ -2,7 +2,12 @@
 
 import * as React from "react"
 
-import { AddGameSheet } from "@/components/gamedex/AddGameSheet"
+import dynamic from "next/dynamic"
+
+const AddGameSheet = dynamic(
+  () => import("@/components/gamedex/AddGameSheet").then((mod) => mod.AddGameSheet),
+  { ssr: false }
+)
 import { GameGrid } from "@/components/gamedex/GameGrid"
 import { LibraryHeader } from "@/components/gamedex/LibraryHeader"
 import SidebarFilters from "@/components/gamedex/SidebarFilters"
@@ -22,6 +27,7 @@ import { useContext, useEffect } from "react"
 import { sendFilterData, importGame, normalizeGame } from "@/lib/services/games"
 import { PlaylistSelector } from "@/components/gamedex/PlaylistSelector"
 import { getPlaylist } from "@/lib/services/playlist"
+import { cn } from "@/lib/utils"
 
 const defaultFilters: LibraryFilters = {
   query: "",
@@ -34,10 +40,11 @@ const defaultFilters: LibraryFilters = {
 }
 
 export function LibraryPage() {
-  const { filterModel } = useContext(FilterContext)
+  const { filterModel, refreshOptions } = useContext(FilterContext)
   const [games, setGames] = React.useState<Game[]>([])
   const [filters, setFilters] = React.useState<LibraryFilters>(defaultFilters)
   const [viewMode, setViewMode] = React.useState<ViewMode>("grid")
+  const [isLoading, setIsLoading] = React.useState(false)
   const { toast } = useToast()
 
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
@@ -78,6 +85,7 @@ export function LibraryPage() {
   }, [])
 
   const fetchGames = React.useCallback(async () => {
+    setIsLoading(true)
     try {
       if (filters.playlistId) {
         const playlist = await getPlaylist(filters.playlistId)
@@ -92,6 +100,8 @@ export function LibraryPage() {
     } catch (error) {
       console.error("Failed to fetch games:", error)
       setGames([])
+    } finally {
+      setIsLoading(false)
     }
   }, [filterModel, filters.playlistId])
 
@@ -112,7 +122,7 @@ export function LibraryPage() {
       toast("Importing...", "info", "Your library is being updated.")
       await importGame(file)
       toast("Import Successful", "success", "Your library has been updated.")
-      await fetchGames()
+      await Promise.all([fetchGames(), refreshOptions()])
     } catch (error: unknown) {
       console.error("Import failed:", error)
       const message =
@@ -251,8 +261,15 @@ export function LibraryPage() {
             onImportClick={() => fileInputRef.current?.click()}
           />
 
-          <div className="flex-1 overflow-y-auto">
-            <div className="sticky z-10 flex items-center justify-between bg-[#09090b]/80 px-8 py-4 backdrop-blur-md">
+          <div className="flex-1 overflow-y-auto relative">
+            {/* Loading Indicator Bar */}
+            {isLoading && (
+              <div className="absolute top-0 left-0 right-0 z-50 h-[2px] overflow-hidden bg-sky-500/10">
+                <div className="h-full w-full bg-sky-500 animate-loading-bar" />
+              </div>
+            )}
+
+            <div className="sticky top-0 z-20 flex items-center justify-between bg-[#09090b]/40 px-8 py-4 backdrop-blur-xl border-b border-white/5 transition-all duration-300">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-medium text-zinc-400">
                   Showing {filters.playlistId ? "Playlist" : "Entire Library"}
@@ -267,7 +284,7 @@ export function LibraryPage() {
               <ViewToggle value={viewMode} onChange={setViewMode} />
             </div>
 
-            <div className="px-8 py-2 pb-10">
+            <div className={cn("px-8 py-2 pb-10 transition-opacity duration-500", isLoading ? "opacity-40" : "opacity-100")}>
               <GameGrid
                 games={filteredGames}
                 view={viewMode}

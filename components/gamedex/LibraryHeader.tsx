@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { LibraryStats } from "@/lib/schemas/game"
 import { Building2, Gamepad2, MonitorSmartphone, PackageSearch, Plus, UploadCloud, Tags } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useState, useEffect } from "react"
 
 type LibraryHeaderProps = {
   stats: LibraryStats
@@ -17,8 +18,26 @@ type LibraryHeaderProps = {
 }
 
 export function LibraryHeader({ stats, onAddClick, onGenresClick, onPlatformsClick, onCompaniesClick, onModManagerClick, onTagsClick, onImportClick }: LibraryHeaderProps) {
+  const [isHealthy, setIsHealthy] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const res = await fetch("http://localhost:7231/health")
+        const text = await res.text()
+        setIsHealthy(text.trim() === "Healthy")
+      } catch (e) {
+        setIsHealthy(false)
+      }
+    }
+
+    checkHealth()
+    const interval = setInterval(checkHealth, 30000) // Check every 30s
+    return () => clearInterval(interval)
+  }, [])
+
   return (
-    <header className="p-8 pb-4 border-b border-zinc-800 flex flex-col md:flex-row md:items-end justify-between gap-6 bg-[#09090b]/80 backdrop-blur-md sticky top-0 z-20">
+    <header className="p-8 pb-4 border-b border-white/5 flex flex-col md:flex-row md:items-end justify-between gap-6 bg-[#09090b]/40 backdrop-blur-xl sticky top-0 z-30">
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           {/* <div
@@ -39,7 +58,18 @@ export function LibraryHeader({ stats, onAddClick, onGenresClick, onPlatformsCli
             </svg>
           </div> */}
           <div>
+          <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight">GameDex</h1>
+            <div 
+              className={cn(
+                "w-1 h-1 rounded-full mt-1.5 transition-all duration-500",
+                isHealthy === true ? "bg-emerald-500 animate-health-pulse" : 
+                isHealthy === false ? "bg-red-500 animate-health-pulse-red" : 
+                "bg-zinc-600"
+              )}
+              title={isHealthy === true ? "API Online" : isHealthy === false ? "API Offline" : "Checking API..."}
+            />
+          </div>
             <div className="flex items-center gap-4 mt-1">
               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
                 <span className="text-[#3b82f6] font-bold">{stats.total}</span>{" "}

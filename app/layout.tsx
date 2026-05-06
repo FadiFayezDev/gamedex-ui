@@ -5,6 +5,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
 import { SettingsProvider } from "@/components/contexts/SettingsContext"
 import { ToastProvider } from "@/components/contexts/ToastContext"
+// import { TauriWindowReady } from "@/components/tauri/TauriWindowReady"
+
 
 // const merriweather = Merriweather({subsets:['latin'],variable:'--font-serif'});
 
@@ -41,7 +43,10 @@ export default function RootLayout({
             <ToastProvider>{children}</ToastProvider>
           </SettingsProvider>
         </ThemeProvider>
+        {/* <TauriWindowReady /> */}
       </body>
+
     </html>
   )
 }
+

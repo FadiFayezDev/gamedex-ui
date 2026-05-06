@@ -12,8 +12,16 @@ import {
 } from "lucide-react"
 
 import { AddToPlaylistButton } from "@/components/gamedex/AddToPlaylistButton"
-import { GameDetailSheet } from "@/components/gamedex/sheets/GameDetail/GameDetailSheet"
+import dynamic from "next/dynamic"
 import { ViewMode } from "@/components/gamedex/types"
+
+const GameDetailSheet = dynamic(
+  () =>
+    import("@/components/gamedex/sheets/GameDetail/GameDetailSheet").then(
+      (mod) => mod.GameDetailSheet
+    ),
+  { ssr: false }
+)
 import { Game } from "@/lib/schemas/game"
 import { getGameCoverUrl } from "@/lib/services/games"
 import { cn } from "@/lib/utils"
@@ -36,6 +44,7 @@ export function GameCard({
   onUpdateGame,
 }: GameCardProps) {
   const [sheetOpen, setSheetOpen] = React.useState(false)
+  const [hasOpened, setHasOpened] = React.useState(false)
   const [imgError, setImgError] = React.useState(false)
 
   const displayRating = game.userRating ?? game.rating ?? game.criticRating ?? 0
@@ -48,7 +57,10 @@ export function GameCard({
   const condensedGenres = genreNames.filter(Boolean).slice(0, 4)
   const condensedTags = tagNames.filter(Boolean).slice(0, 4)
   const ageLabel = formatAgeRating(game.ageRating)
-  const openSheet = () => setSheetOpen(true)
+  const openSheet = () => {
+    setHasOpened(true)
+    setSheetOpen(true)
+  }
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -131,26 +143,28 @@ export function GameCard({
         )}
       </article>
 
-      <GameDetailSheet
-        gameId={game.id}
-        coverUrl={game.coverUrl ?? undefined}
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        onUpdate={(updated) => {
-          onUpdateGame({
-            id: updated.id,
-            title: updated.title,
-            coverUrl: updated.coverUrl,
-            priceAmount: updated.priceAmount,
-            priceCurrency: updated.priceCurrency,
-            userRating: updated.userRating,
-            criticRating: updated.criticRating,
-            rating: updated.rating,
-            isFavorite: updated.isFavorite,
-            isPlayed: updated.isPlayed,
-          })
-        }}
-      />
+      {hasOpened && (
+        <GameDetailSheet
+          gameId={game.id}
+          coverUrl={game.coverUrl ?? undefined}
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          onUpdate={(updated) => {
+            onUpdateGame({
+              id: updated.id,
+              title: updated.title,
+              coverUrl: updated.coverUrl,
+              priceAmount: updated.priceAmount,
+              priceCurrency: updated.priceCurrency,
+              userRating: updated.userRating,
+              criticRating: updated.criticRating,
+              rating: updated.rating,
+              isFavorite: updated.isFavorite,
+              isPlayed: updated.isPlayed,
+            })
+          }}
+        />
+      )}
     </>
   )
 }

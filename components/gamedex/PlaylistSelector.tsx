@@ -80,6 +80,7 @@ export function PlaylistSelector({ selectedPlaylistId, onSelect }: Props) {
       setNewDescription("");
       setShowCreateForm(false);
       await fetchPlaylists();
+      window.dispatchEvent(new Event("playlist-updated"));
     } catch (error) {
       console.error("Failed to create playlist", error);
     } finally {
@@ -99,6 +100,7 @@ export function PlaylistSelector({ selectedPlaylistId, onSelect }: Props) {
       await deletePlaylist(confirmDelete.id);
       if (selectedPlaylistId === confirmDelete.id) onSelect(null);
       await fetchPlaylists();
+      window.dispatchEvent(new Event("playlist-updated"));
     } catch (error) {
       console.error("Failed to delete playlist", error);
     } finally {

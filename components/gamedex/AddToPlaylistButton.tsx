@@ -62,6 +62,13 @@ export function AddToPlaylistButton({ gameId }: Props) {
     loadData();
   }, [gameId]);
 
+  // Listen for external playlist updates (e.g., when a new playlist is created elsewhere)
+  useEffect(() => {
+    const handler = () => loadData();
+    window.addEventListener("playlist-updated", handler);
+    return () => window.removeEventListener("playlist-updated", handler);
+  }, [gameId]);
+
   const openDropdown = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!btnRef.current) return;

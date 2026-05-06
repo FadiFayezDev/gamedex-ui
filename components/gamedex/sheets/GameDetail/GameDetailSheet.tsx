@@ -1,7 +1,7 @@
 "use client"
 import { motion, AnimatePresence } from "framer-motion"
 import * as React from "react"
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import {
   Pencil,
   Check,
@@ -99,6 +99,7 @@ import { Section } from "./components/Section"
 import { InlineField } from "./components/InlineField"
 import { RatingBar } from "./components/RatingBar"
 import { AddFormToggle } from "./components/AddFormToggle"
+import { ImageGalleryModal } from "./components/ImageGalleryModal"
 import EntityPicker from "./components/EntityPicker"
 import { Chip } from "./components/Chip"
 import { CompanyPicker } from "./components/CompanyPicker"
@@ -398,8 +399,39 @@ export function GameDetailSheet({
   const [trailerModalOpen, setTrailerModalOpen] = useState(false)
   const bgVideoRef = useRef<HTMLVideoElement>(null)
 
+  const [galleryOpen, setGalleryOpen] = useState(false)
+  const [galleryIndex, setGalleryIndex] = useState(0)
+  const [mediaCollapsed, setMediaCollapsed] = useState(false)
+
   const [confirmDeleteGameOpen, setConfirmDeleteGameOpen] = useState(false)
   const [isDeletingGame, setIsDeletingGame] = useState(false)
+
+  // ── Auto-pause background video ──
+  useEffect(() => {
+    if (!bgVideoRef.current) return
+    if (galleryOpen || trailerModalOpen) {
+      bgVideoRef.current.pause()
+    } else {
+      bgVideoRef.current.play().catch(() => {}) // Handle potential autoplay blocks
+    }
+  }, [galleryOpen, trailerModalOpen])
+
+  // ── Prepare Gallery Images ──
+  const galleryImages = useMemo(() => {
+    if (!game) return []
+    return game.mediaAssets
+      .filter((asset) => Number(asset.type) !== Number(AssetType.VideoTrailer))
+      .map((asset) => ({
+        id: asset.id,
+        url: Number(asset.type) === Number(AssetType.CoverImage) && game.coverUrl
+          ? game.coverUrl
+          : handleMediaAssetsPath({
+              gameId: game.id,
+              url: asset.url,
+              type: asset.type as AssetType,
+            }),
+      }))
+  }, [game])
 
   // ── DELETE GAME ─────────────────────────────────────────────────────────────
   const handleDeleteGameConfirm = async () => {
@@ -1346,7 +1378,7 @@ const handleInstallSizeSave = (gbString: string) => {
                             <InlineField
                               value={game.priceCurrency ?? ""}
                               displayValue={
-                                game.priceCurrency ? `Currency: ${game.priceCurrency}` : "Currency: �"
+                                game.priceCurrency ? `Currency: ${game.priceCurrency}` : "Currency: —"
                               }
                               onSave={handleCurrencySave}
                               placeholder="Currency"
@@ -1380,6 +1412,10 @@ const handleInstallSizeSave = (gbString: string) => {
                   <Section
                     icon={Film}
                     title="Media Assets"
+                    count={game.mediaAssets.length}
+                    collapsible
+                    isCollapsed={mediaCollapsed}
+                    onToggle={() => setMediaCollapsed(!mediaCollapsed)}
                     action={
                       <AddFormToggle
                         fields={MEDIA_ASSET_FIELDS}
@@ -1396,50 +1432,54 @@ const handleInstallSizeSave = (gbString: string) => {
                         {game.mediaAssets.map((a) => (
                           <div
                             key={a.id}
-                            className="group relative flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900"
+                            className="group relative flex aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900"
+                            onClick={() => {
+                              if (Number(a.type) === Number(AssetType.VideoTrailer)) {
+                                setTrailerModalOpen(true)
+                                return
+                              }
+                              
+                              const idx = galleryImages.findIndex((img) => img.id === a.id)
+                              setGalleryIndex(idx >= 0 ? idx : 0)
+                              setGalleryOpen(true)
+                            }}
                           >
-                            {a.type === AssetType.VideoTrailer ? (
+                            {Number(a.type) === Number(AssetType.VideoTrailer) ? (
                               /* Trailer thumbnail with play overlay */
-                              <div
-                                className="relative h-full w-full cursor-pointer"
-                                onClick={() => setTrailerModalOpen(true)}
-                              >
+                              <div className="relative h-full w-full">
                                 <video
                                   src={game.trailerUrl ?? ""}
-                                  className="h-full w-full object-cover"
+                                  className="h-full w-full object-cover transition-transform duration-700 will-change-transform group-hover:scale-105"
                                   muted
                                   preload="metadata"
                                 />
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                                  <Play className="h-6 w-6 fill-white text-white" />
-                                </div>
                               </div>
                             ) : a.url ? (
                               <img
-                                src={a.type as AssetType === AssetType.CoverImage && game.coverUrl ? game.coverUrl : handleMediaAssetsPath({
+                                src={Number(a.type) === Number(AssetType.CoverImage) && game.coverUrl ? game.coverUrl : handleMediaAssetsPath({
                                   gameId: game.id,
                                   url: a.url,
                                   type: a.type as AssetType,
                                 })}
                                 alt={a.type.toString()}
-                                className="h-full w-full object-cover"
+                                className="h-full w-full object-cover transition-transform duration-700 will-change-transform group-hover:scale-105"
                               />
                             ) : (
                               <span className="text-[10px] tracking-wider text-zinc-600 uppercase">
                                 {a.type}
                               </span>
                             )}
-                            <div className="absolute inset-0 flex items-end justify-between bg-black/50 p-2 opacity-0 transition-opacity group-hover:opacity-100">
-                              <span className="truncate text-[10px] text-zinc-300">
-                                {a.type === 3
+                            <div className="absolute inset-0 flex items-end justify-between bg-black/40 p-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                              <span className="truncate text-[10px] font-medium text-zinc-300 drop-shadow-md">
+                                {Number(a.type) === 3
                                   ? "Trailer"
-                                  : a.type === 2
+                                  : Number(a.type) === 2
                                     ? "Screenshot"
-                                    : a.type === 1
+                                    : Number(a.type) === 1
                                       ? "Cover"
                                       : a.type}
                               </span>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                 <label className="cursor-pointer shrink-0 text-zinc-400 hover:text-white transition-colors">
                                   <Pencil className="h-3 w-3" />
                                   <input
@@ -1452,13 +1492,14 @@ const handleInstallSizeSave = (gbString: string) => {
                                   />
                                 </label>
                                 <button
-                                  onClick={() =>
+                                  onClick={(e) => {
+                                    e.stopPropagation()
                                     handleDeleteMediaAssets({
                                       gameId: game.id,
                                       url: a.url,
                                       type: a.type as AssetType,
                                     })
-                                  }
+                                  }}
                                   className="shrink-0 text-red-400 hover:text-red-300 transition-colors"
                                 >
                                   <Trash2 className="h-3 w-3" />
@@ -2191,6 +2232,15 @@ const handleInstallSizeSave = (gbString: string) => {
           />
         </SheetContent>
       </Sheet>
+      <AnimatePresence>
+        {galleryOpen && game && (
+          <ImageGalleryModal
+            images={galleryImages.map((img) => img.url)}
+            initialIndex={galleryIndex}
+            onClose={() => setGalleryOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </>
   )
 }
