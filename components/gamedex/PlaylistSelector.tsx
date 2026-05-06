@@ -123,65 +123,65 @@ export function PlaylistSelector({ selectedPlaylistId, onSelect }: Props) {
       {/* Trigger */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-800/50"
+        className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
       >
         {title}
         <ChevronDown
-          className={`h-3.5 w-3.5 text-zinc-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          className={`h-2.5 w-2.5 text-zinc-600 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-60 rounded-xl border border-zinc-800 bg-[#161b22] py-1.5 shadow-2xl">
+        <div className="absolute left-0 top-full z-50 mt-1.5 w-52 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 py-1 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
           {/* All Games */}
           <button
             onClick={() => { onSelect(null); setIsOpen(false); }}
-            className={`w-full px-3 py-2 text-left text-xs transition-colors ${
+            className={`w-full px-3 py-1.5 text-left text-[11px] transition-colors ${
               selectedPlaylistId === null
-                ? "bg-zinc-700/40 text-white"
-                : "text-zinc-300 hover:bg-zinc-800/60 hover:text-white"
+                ? "bg-zinc-800/70 text-zinc-100"
+                : "text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200"
             }`}
           >
             All Games
           </button>
 
-          {playlists.length > 0 && <div className="my-1 h-px bg-zinc-800/60" />}
+          {playlists.length > 0 && <div className="my-1 h-px bg-zinc-800/80" />}
 
           {/* Playlist list */}
-          <div className="max-h-52 overflow-y-auto">
+          <div className="max-h-44 overflow-y-auto">
             {playlists.map((playlist) => (
               <div
                 key={playlist.id}
-                className={`group flex items-center justify-between px-3 py-2 transition-colors ${
+                className={`group flex items-center justify-between px-3 py-1.5 transition-colors ${
                   selectedPlaylistId === playlist.id
-                    ? "bg-zinc-700/40 text-white"
-                    : "text-zinc-300 hover:bg-zinc-800/60 hover:text-white"
+                    ? "bg-zinc-800/70 text-zinc-100"
+                    : "text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200"
                 }`}
               >
                 <button
-                  className="min-w-0 flex-1 truncate text-left text-xs"
+                  className="min-w-0 flex-1 truncate text-left text-[11px]"
                   onClick={() => { onSelect(playlist.id!); setIsOpen(false); }}
                 >
                   {playlist.name}
                   {playlist.gameCount != null && (
-                    <span className="ml-2 text-[10px] text-zinc-500">
+                    <span className="ml-2 font-mono text-[9px] text-zinc-600">
                       {playlist.gameCount}
                     </span>
                   )}
                 </button>
                 <button
                   onClick={(e) => handleDeleteClick(e, playlist.id!, playlist.name!)}
-                  className="ml-2 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-400"
+                  className="ml-2 shrink-0 text-zinc-700 opacity-0 transition-all group-hover:opacity-100 hover:text-red-400"
                   title="Delete playlist"
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-2.5 w-2.5" />
                 </button>
               </div>
             ))}
           </div>
 
-          <div className="my-1 h-px bg-zinc-800/60" />
+          <div className="my-1 h-px bg-zinc-800/80" />
 
           {/* Inline Create Form */}
           {showCreateForm ? (
@@ -189,8 +189,8 @@ export function PlaylistSelector({ selectedPlaylistId, onSelect }: Props) {
               <input
                 ref={nameInputRef}
                 type="text"
-                className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-600"
-                placeholder="Playlist name..."
+                className="w-full rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 placeholder-zinc-700 focus:outline-none focus-visible:border-zinc-700"
+                placeholder="Playlist name…"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => {
@@ -200,8 +200,8 @@ export function PlaylistSelector({ selectedPlaylistId, onSelect }: Props) {
               />
               <input
                 type="text"
-                className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-600"
-                placeholder="Description (optional)..."
+                className="w-full rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 placeholder-zinc-700 focus:outline-none focus-visible:border-zinc-700"
+                placeholder="Description (optional)…"
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
                 onKeyDown={(e) => {
@@ -215,23 +215,23 @@ export function PlaylistSelector({ selectedPlaylistId, onSelect }: Props) {
                   disabled={isSaving || !newName.trim()}
                   className="flex items-center gap-1 text-[10px] text-emerald-400 transition-colors hover:text-emerald-300 disabled:opacity-40"
                 >
-                  {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                  {isSaving ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Check className="h-2.5 w-2.5" />}
                   Save
                 </button>
                 <button
                   onClick={handleCancel}
-                  className="flex items-center gap-1 text-[10px] text-zinc-500 transition-colors hover:text-zinc-300"
+                  className="flex items-center gap-1 text-[10px] text-zinc-600 transition-colors hover:text-zinc-300"
                 >
-                  <X className="h-3 w-3" /> Cancel
+                  <X className="h-2.5 w-2.5" /> Cancel
                 </button>
               </div>
             </div>
           ) : (
             <button
               onClick={() => setShowCreateForm(true)}
-              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-zinc-500 transition-colors hover:bg-zinc-800/60 hover:text-white"
+              className="flex w-full items-center gap-1.5 px-3 py-1.5 text-[11px] text-zinc-600 transition-colors hover:bg-zinc-800/40 hover:text-zinc-300"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-3 w-3" />
               New playlist
             </button>
           )}

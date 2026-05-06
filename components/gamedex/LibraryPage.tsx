@@ -254,11 +254,12 @@ export function LibraryPage() {
               </div>
             )}
 
-            <div className="sticky top-0 z-20 flex items-center justify-between bg-[#09090b]/40 px-8 py-4 backdrop-blur-xl border-b border-white/5 transition-all duration-300">
+            <div className="sticky top-0 z-20 flex h-10 items-center justify-between border-b border-zinc-800/60 bg-[#09090b]/80 px-5 backdrop-blur-xl">
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-medium text-zinc-400">
-                  Showing {filters.playlistId ? "Playlist" : "Entire Library"}
-                </h2>
+                <span className="text-[11px] text-zinc-600">
+                  {filters.playlistId ? "Playlist" : "Library"}
+                </span>
+                <span className="h-0.5 w-0.5 rounded-full bg-zinc-800" />
                 <PlaylistSelector
                   selectedPlaylistId={filters.playlistId}
                   onSelect={(id) =>
@@ -269,7 +270,7 @@ export function LibraryPage() {
               <ViewToggle value={viewMode} onChange={setViewMode} />
             </div>
 
-            <div className={cn("px-8 py-2 pb-10 transition-opacity duration-500", isLoading ? "opacity-40" : "opacity-100")}>
+            <div className={cn("px-5 py-4 pb-10 transition-opacity duration-500", isLoading ? "opacity-40" : "opacity-100")}>
               <GameGrid
                 games={filteredGames}
                 view={viewMode}
