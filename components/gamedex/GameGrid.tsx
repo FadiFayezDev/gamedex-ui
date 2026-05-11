@@ -123,6 +123,7 @@ function AddGameEntry({
   view: ViewMode
   onAddClick: () => void
 }) {
+  // --- Grid ---
   if (view === "grid") {
     return (
       <button
@@ -131,22 +132,24 @@ function AddGameEntry({
         type="button"
         onClick={onAddClick}
       >
-        <div className="relative aspect-3/4 overflow-hidden rounded-[1.6rem] border border-dashed border-zinc-700 bg-[radial-gradient(circle_at_top,#1f2937_0%,#111827_35%,#09090b_100%)] p-3 transition-all duration-300 hover:-translate-y-1 hover:border-sky-400/60 hover:shadow-[0_18px_50px_rgba(14,165,233,0.14)]">
-          <div className="flex h-full flex-col rounded-[1.1rem] border border-white/6 bg-white/4 p-4">
-            <div className="flex items-center justify-between text-[10px] font-bold tracking-[0.24em] text-zinc-500 uppercase">
+        <div className="relative aspect-3/4 overflow-hidden rounded-[1.35rem] border border-dashed border-zinc-800 bg-zinc-950 p-px transition-all duration-300 hover:-translate-y-1 hover:border-zinc-600 hover:shadow-[0_20px_55px_rgba(0,0,0,0.32)]">
+          <div className="flex h-full flex-col rounded-[1.3rem] bg-zinc-950/80">
+            {/* Corner labels */}
+            <div className="flex items-center justify-between px-3.5 pt-3.5 text-[9px] font-bold tracking-[0.22em] text-zinc-600 uppercase">
               <span>New Slot</span>
               <span>Alt + N</span>
             </div>
-            <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/6 text-sky-300 transition-colors group-hover:text-white">
-                <IconPlus size={30} strokeWidth={1.7} />
+            {/* Center icon */}
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all duration-200 group-hover:border-zinc-600 group-hover:text-zinc-300">
+                <IconPlus size={22} strokeWidth={1.6} />
               </div>
-              <div className="space-y-1">
-                <p className="text-base font-semibold text-white">
+              <div className="space-y-1 px-4">
+                <p className="text-xs font-semibold text-zinc-300">
                   Add a new game
                 </p>
-                <p className="text-sm leading-6 text-zinc-400">
-                  Start a fresh entry with cover, price, tags, and library data.
+                <p className="text-[10px] leading-relaxed text-zinc-600">
+                  Cover, tags, ratings & more
                 </p>
               </div>
             </div>
@@ -156,110 +159,100 @@ function AddGameEntry({
     )
   }
 
+  // --- Tiles ---
   if (view === "tiles") {
     return (
       <button
         aria-label="Add New Game"
-        className="group grid min-h-54 grid-cols-[132px_minmax(0,1fr)] gap-4 overflow-hidden rounded-[1.75rem] border border-dashed border-zinc-700 bg-[linear-gradient(135deg,rgba(15,23,42,0.95),rgba(17,24,39,0.92),rgba(3,7,18,0.98))] p-3 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-sky-400/60 hover:shadow-[0_18px_50px_rgba(14,165,233,0.14)]"
+        className="group grid min-h-[216px] grid-cols-[132px_minmax(0,1fr)] gap-4 rounded-[1.75rem] border border-dashed border-zinc-800 bg-zinc-950/40 p-3 text-left transition-all duration-300 hover:border-zinc-600 hover:bg-zinc-950/70 hover:shadow-[0_22px_50px_rgba(0,0,0,0.3)]"
         type="button"
         onClick={onAddClick}
       >
-        <div className="flex h-full items-center justify-center rounded-[1.2rem] border border-white/8 bg-white/5">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-sky-400/10 text-sky-300 transition-colors group-hover:bg-sky-400/20 group-hover:text-white">
-            <IconPlus size={32} strokeWidth={1.7} />
+        {/* Left icon panel */}
+        <div className="flex h-full items-center justify-center rounded-[1.2rem] border border-zinc-800 bg-zinc-950">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all duration-200 group-hover:border-zinc-600 group-hover:text-zinc-300">
+            <IconPlus size={22} strokeWidth={1.6} />
           </div>
         </div>
-        <div className="flex min-w-0 flex-col justify-between py-2">
+        {/* Right info */}
+        <div className="flex min-w-0 flex-col justify-center gap-2 py-2">
           <div>
-            <span className="text-[10px] font-bold tracking-[0.26em] text-zinc-500 uppercase">
-              Quick Create
+            <span className="text-[9px] font-bold tracking-[0.24em] text-zinc-600 uppercase">
+              New Entry
             </span>
-            <h3 className="mt-2 text-xl font-semibold text-white">
-              Add a game card
+            <h3 className="mt-1.5 text-base font-semibold text-zinc-200">
+              Add a game
             </h3>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-400">
-              Perfect for fast importing or manual curation when you want the
-              new title visible immediately.
+            <p className="mt-1 text-xs leading-relaxed text-zinc-600">
+              Create a record with cover, metadata, ratings, and playlists.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-zinc-300">
-            <span className="rounded-full border border-zinc-700 bg-zinc-900/70 px-3 py-1">
-              Cover-ready
-            </span>
-            <span className="rounded-full border border-zinc-700 bg-zinc-900/70 px-3 py-1">
-              Smart metadata
-            </span>
-            <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1 text-sky-200">
-              Alt + N
-            </span>
-          </div>
+          <span className="mt-1 w-fit rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-0.5 text-[10px] font-medium text-zinc-500">
+            Alt + N
+          </span>
         </div>
       </button>
     )
   }
 
+  // --- List ---
   if (view === "list") {
     return (
       <button
         aria-label="Add New Game"
-        className="group flex items-center gap-4 rounded-[1.4rem] border border-dashed border-zinc-700 bg-zinc-950/55 px-4 py-4 text-left transition-all duration-300 hover:border-sky-400/60 hover:bg-zinc-950 hover:shadow-[0_18px_50px_rgba(14,165,233,0.1)]"
+        className="group flex items-center gap-4 rounded-[1.4rem] border border-dashed border-zinc-800 bg-zinc-950/45 px-4 py-4 text-left transition-all duration-300 hover:border-zinc-600 hover:bg-zinc-950/70"
         type="button"
         onClick={onAddClick}
       >
-        <div className="flex h-18 w-18 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-sky-400/10 text-sky-300 transition-colors group-hover:text-white">
-          <IconPlus size={28} strokeWidth={1.7} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-base font-semibold text-white">
-                Add a new library entry
-              </p>
-              <p className="mt-1 text-sm text-zinc-400">
-                Create a title with metadata, ratings, playlists, and cover art.
-              </p>
+        <div className="relative h-24 w-[4.6rem] shrink-0 overflow-hidden rounded-[1rem] border border-zinc-800 bg-zinc-950">
+          <div className="flex h-full w-full items-center justify-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all duration-200 group-hover:border-zinc-600 group-hover:text-zinc-300">
+              <IconPlus size={18} strokeWidth={1.6} />
             </div>
-            <span className="hidden rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1 text-[11px] font-semibold text-sky-200 md:inline-flex">
-              Alt + N
-            </span>
           </div>
         </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-zinc-200">Add a new game</p>
+          <p className="mt-1 text-xs text-zinc-600">
+            Cover, tags, ratings, playlists and more
+          </p>
+        </div>
+        <span className="hidden shrink-0 rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-1 text-[10px] font-medium text-zinc-500 md:inline-flex">
+          Alt + N
+        </span>
       </button>
     )
   }
 
+  // --- Details ---
   return (
     <button
       aria-label="Add New Game"
-      className="grid rounded-2xl border border-dashed border-zinc-700 bg-zinc-950/55 px-4 py-4 text-left transition-all duration-300 hover:border-sky-400/60 hover:bg-zinc-950 hover:shadow-[0_18px_50px_rgba(14,165,233,0.08)] md:grid-cols-[minmax(0,2.4fr)_1fr_1.25fr_0.75fr_0.7fr_0.8fr_0.85fr_auto] md:items-center"
+      className="grid rounded-2xl border border-dashed border-zinc-800 bg-zinc-950/35 px-4 py-3 text-left transition-all duration-300 hover:border-zinc-600 hover:bg-zinc-950/60 md:grid-cols-[minmax(0,2.4fr)_1fr_1.25fr_0.75fr_0.7fr_0.8fr_0.85fr_auto] md:items-center"
       type="button"
       onClick={onAddClick}
     >
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-sky-400/10 text-sky-300">
-          <IconPlus size={22} strokeWidth={1.8} />
+        <div className="flex h-12 w-10 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950">
+          <IconPlus size={16} strokeWidth={1.6} className="text-zinc-500" />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-white">
+          <p className="truncate text-sm font-semibold text-zinc-300">
             Add a new game
           </p>
-          <p className="mt-1 text-xs text-zinc-400">
-            Create a fresh library record
-          </p>
+          <p className="mt-0.5 text-[10px] text-zinc-600">New library entry</p>
         </div>
       </div>
-      <span className="mt-3 text-xs text-zinc-500 md:mt-0">Manual</span>
-      <span className="hidden text-xs text-zinc-500 md:block">
-        Cover, rating, tags
-      </span>
-      <span className="hidden text-xs text-zinc-500 md:block">Now</span>
-      <span className="hidden text-xs text-zinc-500 md:block">—</span>
-      <span className="hidden text-xs text-zinc-500 md:block">Ready</span>
-      <span className="hidden text-xs font-medium text-sky-200 md:block">
-        Alt + N
-      </span>
-      <span className="mt-3 text-right text-xs text-zinc-500 md:mt-0">
-        Quick create
+      <span className="mt-2 text-xs text-zinc-600 md:mt-0">—</span>
+      <span className="hidden text-xs text-zinc-600 md:block">—</span>
+      <span className="hidden text-xs text-zinc-600 md:block">—</span>
+      <span className="hidden text-xs text-zinc-600 md:block">—</span>
+      <span className="hidden text-xs text-zinc-600 md:block">—</span>
+      <span className="hidden text-xs font-medium text-zinc-500 md:block">—</span>
+      <span className="mt-2 inline-flex justify-end text-right md:mt-0">
+        <span className="rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-0.5 text-[10px] font-medium text-zinc-500">
+          Alt + N
+        </span>
       </span>
     </button>
   )

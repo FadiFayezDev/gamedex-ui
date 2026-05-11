@@ -56,29 +56,14 @@ export function LibraryPage() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // سنطبع في الكونسول لنرى ما الذي يقرأه المتصفح فعلياً عند الضغط
-      console.log(
-        "Key pressed:",
-        event.key,
-        "Ctrl:",
-        event.ctrlKey,
-        "Alt:",
-        event.altKey
-      )
-
-      // الاختصار: Alt + S (أقل تعارضاً من Ctrl)
       if (event.altKey && event.key.toLowerCase() === "n") {
         event.preventDefault()
-        event.stopPropagation() // لمنع الحدث من الصعود لأي عنصر آخر
-
-        console.log("Success! Shortcut triggered.")
+        event.stopPropagation()
         setIsSheetOpen(true)
       }
     }
 
-    // نستخدم capture: true لضمان التقاط الحدث في مرحلة البداية
     window.addEventListener("keydown", handleKeyDown, true)
-
     return () => {
       window.removeEventListener("keydown", handleKeyDown, true)
     }
@@ -253,11 +238,11 @@ export function LibraryPage() {
           <LibraryHeader
             stats={stats}
             onAddClick={() => setIsSheetOpen(true)}
-            onGenresClick={() => setGenreSheetOpen(true)} // Placeholder for genre management
-            onPlatformsClick={() => setPlatformSheetOpen(true)} // Placeholder for platform management
-            onCompaniesClick={() => setCompaniesSheetOpen(true)} // Placeholder for company management
-            onModManagerClick={() => setModManagerSheetOpen(true)} // Placeholder for mod manager management
-            onTagsClick={() => setTagsSheetOpen(true)} // Placeholder for tag management
+            onGenresClick={() => setGenreSheetOpen(true)}
+            onPlatformsClick={() => setPlatformSheetOpen(true)}
+            onCompaniesClick={() => setCompaniesSheetOpen(true)}
+            onModManagerClick={() => setModManagerSheetOpen(true)}
+            onTagsClick={() => setTagsSheetOpen(true)}
             onImportClick={() => fileInputRef.current?.click()}
           />
 
@@ -269,11 +254,12 @@ export function LibraryPage() {
               </div>
             )}
 
-            <div className="sticky top-0 z-20 flex items-center justify-between bg-[#09090b]/40 px-8 py-4 backdrop-blur-xl border-b border-white/5 transition-all duration-300">
+            <div className="sticky top-0 z-20 flex h-10 items-center justify-between border-b border-zinc-800/60 bg-[#09090b]/80 px-5 backdrop-blur-xl">
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-medium text-zinc-400">
-                  Showing {filters.playlistId ? "Playlist" : "Entire Library"}
-                </h2>
+                <span className="text-[11px] text-zinc-600">
+                  {filters.playlistId ? "Playlist" : "Library"}
+                </span>
+                <span className="h-0.5 w-0.5 rounded-full bg-zinc-800" />
                 <PlaylistSelector
                   selectedPlaylistId={filters.playlistId}
                   onSelect={(id) =>
@@ -284,7 +270,7 @@ export function LibraryPage() {
               <ViewToggle value={viewMode} onChange={setViewMode} />
             </div>
 
-            <div className={cn("px-8 py-2 pb-10 transition-opacity duration-500", isLoading ? "opacity-40" : "opacity-100")}>
+            <div className={cn("px-5 py-4 pb-10 transition-opacity duration-500", isLoading ? "opacity-40" : "opacity-100")}>
               <GameGrid
                 games={filteredGames}
                 view={viewMode}
@@ -303,18 +289,18 @@ export function LibraryPage() {
       />
 
       <GenreManageSheet
-        open={genreSheetOpen} // Placeholder, should be controlled by state
-        onOpenChange={setGenreSheetOpen} // Placeholder for genre sheet control
+        open={genreSheetOpen}
+        onOpenChange={setGenreSheetOpen}
       />
 
       <PlatformManageSheet
-        open={platformSheetOpen} // Placeholder, should be controlled by state
-        onOpenChange={setPlatformSheetOpen} // Placeholder for platform sheet control
+        open={platformSheetOpen}
+        onOpenChange={setPlatformSheetOpen}
       />
 
       <CompanyManageSheet
-        open={companiesSheetOpen} // Placeholder, should be controlled by state
-        onOpenChange={setCompaniesSheetOpen} // Placeholder for company sheet control
+        open={companiesSheetOpen}
+        onOpenChange={setCompaniesSheetOpen}
       />
 
       <ModManagerManageSheet

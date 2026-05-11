@@ -1,8 +1,15 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
 import { LibraryStats } from "@/lib/schemas/game"
-import { Building2, Gamepad2, MonitorSmartphone, PackageSearch, Plus, UploadCloud, Tags } from "lucide-react"
+import {
+  Building2,
+  Gamepad2,
+  MonitorSmartphone,
+  PackageSearch,
+  Plus,
+  UploadCloud,
+  Tags,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 
@@ -17,7 +24,16 @@ type LibraryHeaderProps = {
   onImportClick?: () => void
 }
 
-export function LibraryHeader({ stats, onAddClick, onGenresClick, onPlatformsClick, onCompaniesClick, onModManagerClick, onTagsClick, onImportClick }: LibraryHeaderProps) {
+export function LibraryHeader({
+  stats,
+  onAddClick,
+  onGenresClick,
+  onPlatformsClick,
+  onCompaniesClick,
+  onModManagerClick,
+  onTagsClick,
+  onImportClick,
+}: LibraryHeaderProps) {
   const [isHealthy, setIsHealthy] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -26,161 +42,124 @@ export function LibraryHeader({ stats, onAddClick, onGenresClick, onPlatformsCli
         const res = await fetch("http://localhost:7231/health")
         const text = await res.text()
         setIsHealthy(text.trim() === "Healthy")
-      } catch (e) {
+      } catch {
         setIsHealthy(false)
       }
     }
-
     checkHealth()
-    const interval = setInterval(checkHealth, 30000) // Check every 30s
+    const interval = setInterval(checkHealth, 30000)
     return () => clearInterval(interval)
   }, [])
 
   return (
-    <header className="p-8 pb-4 border-b border-white/5 flex flex-col md:flex-row md:items-end justify-between gap-6 bg-[#09090b]/40 backdrop-blur-xl sticky top-0 z-30">
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          {/* <div
-            aria-hidden="true"
-            className="w-10 h-10 bg-zinc-100 flex items-center justify-center rounded-lg shadow-sm"
-          >
-            <svg
-              className="text-zinc-950"
-              fill="none"
-              height="24"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              viewBox="0 0 24 24"
-              width="24"
-            >
-              <circle cx="12" cy="12" r="8" />
-              <path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
-            </svg>
-          </div> */}
-          <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">GameDex</h1>
-            <div 
+    <header className="shrink-0 border-b border-zinc-800/70 bg-[#09090b]">
+      <div className="flex h-12 items-center justify-between gap-4 px-5">
+
+        {/* Left: Brand + health dot + stats */}
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-sm font-bold tracking-tight text-zinc-100">
+              GameDex
+            </span>
+            <span
+              title={
+                isHealthy === true
+                  ? "API Online"
+                  : isHealthy === false
+                  ? "API Offline"
+                  : "Checking…"
+              }
               className={cn(
-                "w-1 h-1 rounded-full mt-1.5 transition-all duration-500",
-                isHealthy === true ? "bg-emerald-500 animate-health-pulse" : 
-                isHealthy === false ? "bg-red-500 animate-health-pulse-red" : 
-                "bg-zinc-600"
+                "h-1.5 w-1.5 rounded-full transition-colors duration-500",
+                isHealthy === true
+                  ? "bg-emerald-500 animate-health-pulse"
+                  : isHealthy === false
+                  ? "bg-red-500"
+                  : "bg-zinc-600"
               )}
-              title={isHealthy === true ? "API Online" : isHealthy === false ? "API Offline" : "Checking API..."}
             />
           </div>
-            <div className="flex items-center gap-4 mt-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                <span className="text-[#3b82f6] font-bold">{stats.total}</span>{" "}
-                Total
-              </span>
-              <span aria-hidden="true" className="w-1 h-1 rounded-full bg-zinc-800" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                <span className="text-[#3b82f6] font-bold">
-                  {stats.favorites}
-                </span>{" "}
-                Favorites
-              </span>
-              <span aria-hidden="true" className="w-1 h-1 rounded-full bg-zinc-800" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                <span className="text-[#3b82f6] font-bold">{stats.played}</span>{" "}
-                Played
-              </span>
-            </div>
+
+          {/* Vertical divider */}
+          <div className="h-4 w-px bg-zinc-800 shrink-0" />
+
+          {/* Stats */}
+          <div className="flex items-center gap-3 min-w-0">
+            <Stat label="Total" value={stats.total} />
+            <Dot />
+            <Stat label="Favorites" value={stats.favorites} />
+            <Dot />
+            <Stat label="Played" value={stats.played} />
           </div>
         </div>
-      </div>
-      <div className="flex items-center gap-4">
-        {/* Actions Toolbar */}
-        <div className="flex items-center gap-1 p-1 bg-zinc-900/40 backdrop-blur-md border border-zinc-800/60 rounded-2xl shadow-xl shadow-black/20">
-          <HeaderButton 
-            icon={<Plus className="w-5 h-5" />} 
-            label="Add Game" 
+
+        {/* Right: Actions toolbar */}
+        <div className="flex items-center gap-1 shrink-0 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1">
+          {/* Primary: Add */}
+          <ToolbarBtn
+            icon={<Plus className="h-3.5 w-3.5" />}
+            label="Add Game"
             onClick={onAddClick}
-            variant="primary"
+            primary
           />
-          
-          <div className="w-px h-6 bg-zinc-800 mx-1" />
 
-          <HeaderButton 
-            icon={<Gamepad2 className="w-5 h-5" />} 
-            label="Genres" 
-            onClick={onGenresClick} 
-          />
-          <HeaderButton 
-            icon={<MonitorSmartphone className="w-5 h-5" />} 
-            label="Platforms" 
-            onClick={onPlatformsClick} 
-          />
-          <HeaderButton 
-            icon={<Building2 className="w-5 h-5" />} 
-            label="Companies" 
-            onClick={onCompaniesClick} 
-          />
-          <HeaderButton 
-            icon={<PackageSearch className="w-5 h-5" />} 
-            label="Mods" 
-            onClick={onModManagerClick} 
-          />
-          <HeaderButton 
-            icon={<Tags className="w-5 h-5" />} 
-            label="Tags" 
-            onClick={onTagsClick} 
-          />
-          <HeaderButton 
-            icon={<UploadCloud className="w-5 h-5" />} 
-            label="Import" 
-            onClick={onImportClick} 
-          />
+          <div className="h-4 w-px bg-zinc-800 mx-0.5" />
+
+          <ToolbarBtn icon={<Gamepad2 className="h-3.5 w-3.5" />} label="Genres" onClick={onGenresClick} />
+          <ToolbarBtn icon={<MonitorSmartphone className="h-3.5 w-3.5" />} label="Platforms" onClick={onPlatformsClick} />
+          <ToolbarBtn icon={<Building2 className="h-3.5 w-3.5" />} label="Companies" onClick={onCompaniesClick} />
+          <ToolbarBtn icon={<PackageSearch className="h-3.5 w-3.5" />} label="Mods" onClick={onModManagerClick} />
+          <ToolbarBtn icon={<Tags className="h-3.5 w-3.5" />} label="Tags" onClick={onTagsClick} />
+
+          <div className="h-4 w-px bg-zinc-800 mx-0.5" />
+
+          <ToolbarBtn icon={<UploadCloud className="h-3.5 w-3.5" />} label="Import" onClick={onImportClick} />
         </div>
-
-        {/* <div className="h-10 w-10 rounded-full border-2 border-zinc-800 p-0.5 overflow-hidden hover:border-zinc-700 transition-colors cursor-pointer ring-offset-2 ring-offset-[#09090b] hover:ring-2 ring-zinc-800">
-          <img
-            alt="User profile"
-            className="w-full h-full object-cover rounded-full"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjzv6r1sIWmZKaV_2Wm1dQkdXjYPwo1M10unGaiUXEMusUQ73HPANLLoqCfp4U0m4VHOLDS6-a-RrF95Tbl3ecSJ0Z8mb-OVZem4tOJSSSsnxIQQKgUgQ-h-ziRA23s2TMcAIfxxhsx05KJzcvOtnh5KEpEwic4qFzur5eq1k9MGJ1SmQd8r05ywnZ6Zn7qGeCYW39KMmZNkDltzeOLRuhkAEXXw4R0FNtUfJrqFCsE1ji0xWGDTvyDuKDuH8R9sQ5zqPH7nouA1t5"
-          />
-        </div> */}
       </div>
     </header>
   )
 }
 
-function HeaderButton({ 
-  icon, 
-  label, 
-  onClick, 
-  variant = "secondary" 
-}: { 
-  icon: React.ReactNode, 
-  label: string, 
-  onClick?: () => void,
-  variant?: "primary" | "secondary"
-}) {
-  if (!onClick) return null;
+/* ── Sub-components ─────────────────────────────────────────────────────── */
 
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <span className="flex items-baseline gap-1 text-[10px] font-medium text-zinc-500">
+      <span className="font-bold tabular-nums text-zinc-200">{value}</span>
+      {label}
+    </span>
+  )
+}
+
+function Dot() {
+  return <span aria-hidden className="h-0.5 w-0.5 rounded-full bg-zinc-700" />
+}
+
+function ToolbarBtn({
+  icon,
+  label,
+  onClick,
+  primary = false,
+}: {
+  icon: React.ReactNode
+  label: string
+  onClick?: () => void
+  primary?: boolean
+}) {
+  if (!onClick) return null
   return (
     <button
       title={label}
       onClick={onClick}
       className={cn(
-        "relative group p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center",
-        "active:scale-90",
-        variant === "primary" 
-          ? "text-sky-400 hover:text-sky-300 hover:bg-sky-500/10" 
-          : "text-zinc-400 hover:text-white hover:bg-white/5"
+        "flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-150 active:scale-90",
+        primary
+          ? "bg-zinc-100 text-zinc-900 hover:bg-white"
+          : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
       )}
     >
-      <div className="transition-transform duration-300 group-hover:scale-110">
-        {icon}
-      </div>
+      {icon}
       <span className="sr-only">{label}</span>
-      
-      {/* Subtle indicator for primary action */}
-      {variant === "primary" && (
-        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-sky-500 rounded-full border-2 border-[#09090b] shadow-[0_0_10px_rgba(14,165,233,0.5)]" />
-      )}
     </button>
   )
 }
