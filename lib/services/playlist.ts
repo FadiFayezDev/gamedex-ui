@@ -46,18 +46,24 @@ export async function createPlaylist(input: CreatePlaylistRequest) {
   )
 }
 
-export async function listPlaylists(): Promise<PlaylistSummary[]> {
+export async function listPlaylists(
+  signal?: AbortSignal
+): Promise<PlaylistSummary[]> {
   const data = await request(
     `${ApiRoot}/api/v1/playlists`,
-    { method: "GET" },
+    { method: "GET", signal },
     PlaylistSummaryListSchema
   )
   return data ?? []
 }
 
-export async function getPlaylist(id: string): Promise<PlaylistDetails> {
+export async function getPlaylist(
+  id: string,
+  signal?: AbortSignal
+): Promise<PlaylistDetails> {
   const res = await fetch(`${ApiRoot}/api/v1/playlists/${id}`, {
     method: "GET",
+    signal,
   })
   if (!res.ok) throw new Error("Playlist not found")
   return (await res.json()) as PlaylistDetails

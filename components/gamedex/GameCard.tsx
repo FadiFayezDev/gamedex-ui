@@ -190,6 +190,7 @@ function GridPresentation({
             alt={game.title}
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
             fill
+            loading="lazy"
             onError={onImageError}
             sizes="(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 16vw"
             src={getGameCoverUrl(game.id)}
@@ -296,6 +297,7 @@ function TilesPresentation({
             alt={game.title}
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
             fill
+            loading="lazy"
             onError={onImageError}
             sizes="(max-width: 1280px) 132px, 200px"
             src={getGameCoverUrl(game.id)}
@@ -396,6 +398,7 @@ function ListPresentation({
             alt={game.title}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             fill
+            loading="lazy"
             onError={onImageError}
             sizes="74px"
             src={getGameCoverUrl(game.id)}
@@ -497,6 +500,7 @@ function DetailsPresentation({
               alt={game.title}
               className="h-full w-full object-cover"
               fill
+              loading="lazy"
               onError={onImageError}
               sizes="40px"
               src={getGameCoverUrl(game.id)}

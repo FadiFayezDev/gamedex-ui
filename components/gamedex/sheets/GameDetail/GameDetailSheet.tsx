@@ -174,7 +174,7 @@ export function GameDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex w-full flex-col overflow-hidden border-l border-zinc-800 bg-[#0a0a0b] p-0 sm:max-w-[570px] lg:min-w-[600px]">
+      <SheetContent className="flex w-full flex-col overflow-hidden border-l border-zinc-800 bg-[#0a0a0b] p-0 sm:max-w-142.5 lg:min-w-150">
         {loading && (
           <div className="flex flex-1 flex-col">
             <LoadingSkeleton />

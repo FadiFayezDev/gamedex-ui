@@ -27,7 +27,17 @@ import {
   deleteAlbumSong,
   publishAlbum,
 } from "@/lib/services/albums"
-import type { GameSectionProps } from "../gameDetail.shared"
+import type {
+  AlbumFormValues,
+  CharacterFormValues,
+  ControlFormValues,
+  DlcFormValues,
+  GameSectionProps,
+  MissionFormValues,
+  PerfProfileFormValues,
+  RequirementFormValues,
+  SongFormValues,
+} from "../gameDetail.shared"
 
 export function useGameDetails({
   game,
@@ -159,7 +169,7 @@ export function useGameDetails({
   )
 
   const handleAddMission = React.useCallback(
-    async (values: Record<string, string>) => {
+    async (values: MissionFormValues) => {
       if (
         game.missions.some(
           (mission) =>
@@ -189,7 +199,7 @@ export function useGameDetails({
   )
 
   const handleAddCharacter = React.useCallback(
-    async (values: Record<string, string>) => {
+    async (values: CharacterFormValues) => {
       if (
         game.characterProfiles.some(
           (character) =>
@@ -219,7 +229,7 @@ export function useGameDetails({
   )
 
   const handleAddDlc = React.useCallback(
-    async (values: Record<string, string>) => {
+    async (values: DlcFormValues) => {
       if (
         game.dlcs.some(
           (dlc) => dlc.title.toLowerCase() === values.title.toLowerCase()
@@ -244,7 +254,7 @@ export function useGameDetails({
   )
 
   const handleAddPerfProfile = React.useCallback(
-    async (values: Record<string, string>) => {
+    async (values: PerfProfileFormValues) => {
       if (
         game.performanceProfiles.some(
           (profile) =>
@@ -278,7 +288,7 @@ export function useGameDetails({
   )
 
   const handleAddRequirement = React.useCallback(
-    async (values: Record<string, string>) => {
+    async (values: RequirementFormValues) => {
       const type = Number.parseInt(values.type, 10)
 
       if (game.requirements.some((requirement) => requirement.type === type)) {
@@ -314,7 +324,7 @@ export function useGameDetails({
   )
 
   const handleAddControlMapping = React.useCallback(
-    async (values: Record<string, string>) => {
+    async (values: ControlFormValues) => {
       if (
         game.controlMappings.some(
           (mapping) =>
@@ -346,7 +356,7 @@ export function useGameDetails({
   )
 
   const handleAddAlbum = React.useCallback(
-    async (values: Record<string, string>) => {
+    async (values: AlbumFormValues) => {
       if (
         game.albums?.some(
           (album) => album.title?.toLowerCase() === values.title?.toLowerCase()
@@ -385,7 +395,7 @@ export function useGameDetails({
   )
 
   const handleAddSong = React.useCallback(
-    async (albumId: string, values: Record<string, string>) => {
+    async (albumId: string, values: SongFormValues) => {
       const album = game.albums?.find((entry) => entry.id === albumId)
       const trackNumber = Number.parseInt(values.trackNumber, 10) || 0
 

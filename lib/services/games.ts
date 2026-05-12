@@ -40,6 +40,12 @@ const makeId = () =>
   globalThis.crypto?.randomUUID?.() ??
   `game-${Math.random().toString(36).slice(2, 10)}`
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const getValue = (value: unknown, key: string) =>
+  isRecord(value) ? value[key] : undefined
+
 const getString = (value: unknown) =>
   typeof value === "string" ? value : undefined
 
@@ -53,16 +59,13 @@ const getNumber = (value: unknown) => {
 }
 
 const getRelatedEntityId = (value: unknown) => {
-  if (!value || typeof value !== "object") return undefined
-  return getString((value as { id?: unknown; Id?: unknown }).id) ??
-    getString((value as { id?: unknown; Id?: unknown }).Id)
+  return getString(getValue(value, "id")) ?? getString(getValue(value, "Id"))
 }
 
 const getRelatedEntityName = (value: unknown) => {
   if (typeof value === "string") return value
-  if (!value || typeof value !== "object") return undefined
-  return getString((value as { name?: unknown; Name?: unknown }).name) ??
-    getString((value as { name?: unknown; Name?: unknown }).Name)
+  return getString(getValue(value, "name")) ??
+    getString(getValue(value, "Name"))
 }
 
 const mapRelatedEntityIds = (values: unknown[]) =>
@@ -74,7 +77,7 @@ const mapRelatedEntityNames = (values: unknown[]) =>
     .filter((value): value is string => Boolean(value))
 
 export const normalizeGame = (apiGame: unknown): Game => {
-  const source = apiGame as Record<string, unknown>
+  const source: Record<string, unknown> = isRecord(apiGame) ? apiGame : {}
 
   const rawGenres = Array.isArray(source.genres)
     ? source.genres
@@ -488,13 +491,17 @@ export async function deleteMediaAsset(id: string, mediaAssetId: string) {
 //#endregion
 
 //#region
-export async function sendFilterData(filterData: FilterModel | null) {
+export async function sendFilterData(
+  filterData: FilterModel | null,
+  signal?: AbortSignal
+) {
   if (!filterData) return [];
 
   const data = await request(
     `${ApiRoot}/api/v1/games/filters`,
     { 
       method: "POST", 
+      signal,
       body: filterData, // ← مش JSON.stringify، خلّي request() تتعامل معاه
     },
     ApiGameListResponse

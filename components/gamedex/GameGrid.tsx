@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useVirtualizer } from "@tanstack/react-virtual"
 import { IconPlus } from "@tabler/icons-react"
 
 import { FilterContext } from "@/components/contexts/FilterContext"
@@ -14,6 +15,13 @@ type GameGridProps = {
   view: ViewMode
   onAddClick: () => void
   onUpdateGame: (updated: Partial<Game> & { id: string }) => void
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>
+}
+
+const GRID_BREAKPOINTS = {
+  lg: 1024,
+  xl: 1280,
+  xxl: 1536,
 }
 
 const getDisplayName = (value: unknown) => {
@@ -30,13 +38,68 @@ const getDisplayName = (value: unknown) => {
 const uniqueNames = (values: Array<string | undefined>) =>
   Array.from(new Set(values.filter((value): value is string => Boolean(value))))
 
+function getItemsPerRow(view: ViewMode, viewportWidth: number) {
+  if (view === "grid") {
+    if (viewportWidth >= GRID_BREAKPOINTS.xxl) return 6
+    if (viewportWidth >= GRID_BREAKPOINTS.xl) return 4
+    if (viewportWidth >= GRID_BREAKPOINTS.lg) return 3
+    return 2
+  }
+
+  if (view === "tiles") {
+    if (viewportWidth >= GRID_BREAKPOINTS.xxl) return 3
+    if (viewportWidth >= GRID_BREAKPOINTS.xl) return 2
+    return 1
+  }
+
+  return 1
+}
+
+function getEstimatedRowSize(view: ViewMode) {
+  switch (view) {
+    case "grid":
+      return 430
+    case "tiles":
+      return 250
+    case "list":
+      return 130
+    case "details":
+      return 88
+    default:
+      return 200
+  }
+}
+
+function useViewportWidth() {
+  const [viewportWidth, setViewportWidth] = React.useState(() =>
+    typeof window === "undefined" ? 0 : window.innerWidth
+  )
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth)
+    }
+
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
+
+  return viewportWidth
+}
+
 export function GameGrid({
   games,
   view,
   onAddClick,
   onUpdateGame,
+  scrollContainerRef,
 }: GameGridProps) {
   const { options } = React.useContext(FilterContext)
+  const viewportWidth = useViewportWidth()
+  const itemsPerRow = React.useMemo(
+    () => getItemsPerRow(view, viewportWidth),
+    [view, viewportWidth]
+  )
 
   const genreMap = React.useMemo(
     () => new Map(options.genres.map((genre) => [genre.id, genre.name])),
@@ -50,26 +113,76 @@ export function GameGrid({
       ),
     [options.platforms]
   )
-  
+
   const tagMap = React.useMemo(
     () => new Map(options.tags.map((tag) => [tag.id, tag.name])),
     [options.tags]
   )
 
-  const layoutClassName = cn(
+  const rowLayoutClassName = cn(
     view === "grid" &&
-      "grid grid-cols-2 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6",
+      "grid grid-cols-2 gap-6 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6",
     view === "tiles" && "grid grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3",
     view === "list" && "flex flex-col gap-3",
     view === "details" && "flex flex-col gap-2"
   )
 
-  return (
-    <section aria-label="Game Gallery" className={layoutClassName}>
-      <AddGameEntry view={view} onAddClick={onAddClick} />
+  const totalItems = games.length + 1
+  const rowCount = Math.ceil(totalItems / itemsPerRow)
 
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const virtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => getEstimatedRowSize(view),
+    overscan: view === "grid" ? 2 : 4,
+  })
+
+  const renderGridItem = (index: number) => {
+    if (index === 0) {
+      return <AddGameEntry key="add-game-entry" view={view} onAddClick={onAddClick} />
+    }
+
+    const game = games[index - 1]
+    if (!game) return null
+
+    const platformNames = uniqueNames(
+      game.platforms?.length
+        ? game.platforms.map(getDisplayName)
+        : game.platformId
+          ? [platformMap.get(game.platformId)]
+          : []
+    )
+
+    const genreNames = uniqueNames(
+      game.genres?.length
+        ? game.genres.map(getDisplayName)
+        : (game.genreIds ?? []).map((id) => genreMap.get(id) ?? id)
+    )
+
+    const tagNames = uniqueNames(
+      game.tags?.length
+        ? game.tags.map(getDisplayName)
+        : (game.tagIds ?? []).map((id) => tagMap.get(id) ?? id)
+    )
+
+    return (
+      <GameCard
+        key={game.id}
+        game={game}
+        view={view}
+        platformNames={platformNames}
+        genreNames={genreNames}
+        tagNames={tagNames}
+        onUpdateGame={onUpdateGame}
+      />
+    )
+  }
+
+  return (
+    <section aria-label="Game Gallery">
       {view === "details" && (
-        <div className="hidden items-center rounded-2xl border border-zinc-800/60 bg-zinc-950/30 px-4 py-3 text-[11px] font-bold tracking-[0.24em] text-zinc-500 uppercase md:grid md:grid-cols-[minmax(0,2.4fr)_1fr_1.25fr_0.75fr_0.7fr_0.8fr_0.85fr_auto]">
+        <div className="mb-2 hidden items-center rounded-2xl border border-zinc-800/60 bg-zinc-950/30 px-4 py-3 text-[11px] font-bold tracking-[0.24em] text-zinc-500 uppercase md:grid md:grid-cols-[minmax(0,2.4fr)_1fr_1.25fr_0.75fr_0.7fr_0.8fr_0.85fr_auto]">
           <span>Title</span>
           <span>Platform</span>
           <span>Genres</span>
@@ -81,37 +194,31 @@ export function GameGrid({
         </div>
       )}
 
-      {games.map((game) => (
-        <GameCard
-          key={game.id}
-          game={game}
-          view={view}
-          platformNames={
-            uniqueNames(
-              game.platforms?.length
-                ? game.platforms.map(getDisplayName)
-                : game.platformId
-                  ? [platformMap.get(game.platformId)]
-                  : []
-            )
-          }
-          genreNames={
-            uniqueNames(
-              game.genres?.length
-                ? game.genres.map(getDisplayName)
-                : (game.genreIds ?? []).map((id) => genreMap.get(id) ?? id)
-            )
-          }
-          tagNames={
-            uniqueNames(
-              game.tags?.length
-                ? game.tags.map(getDisplayName)
-                : (game.tagIds ?? []).map((id) => tagMap.get(id) ?? id)
-            )
-          }
-          onUpdateGame={onUpdateGame}
-        />
-      ))}
+      <div
+        className="relative w-full"
+        style={{ height: `${virtualizer.getTotalSize()}px` }}
+      >
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const startIndex = virtualRow.index * itemsPerRow
+          const endIndex = Math.min(startIndex + itemsPerRow, totalItems)
+
+          return (
+            <div
+              key={virtualRow.key}
+              ref={virtualizer.measureElement}
+              data-index={virtualRow.index}
+              className="absolute left-0 top-0 w-full"
+              style={{ transform: `translateY(${virtualRow.start}px)` }}
+            >
+              <div className={rowLayoutClassName}>
+                {Array.from({ length: endIndex - startIndex }, (_, offset) =>
+                  renderGridItem(startIndex + offset)
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </section>
   )
 }
@@ -123,7 +230,6 @@ function AddGameEntry({
   view: ViewMode
   onAddClick: () => void
 }) {
-  // --- Grid ---
   if (view === "grid") {
     return (
       <button
@@ -134,12 +240,10 @@ function AddGameEntry({
       >
         <div className="relative aspect-3/4 overflow-hidden rounded-[1.35rem] border border-dashed border-zinc-800 bg-zinc-950 p-px transition-all duration-300 hover:-translate-y-1 hover:border-zinc-600 hover:shadow-[0_20px_55px_rgba(0,0,0,0.32)]">
           <div className="flex h-full flex-col rounded-[1.3rem] bg-zinc-950/80">
-            {/* Corner labels */}
             <div className="flex items-center justify-between px-3.5 pt-3.5 text-[9px] font-bold tracking-[0.22em] text-zinc-600 uppercase">
               <span>New Slot</span>
               <span>Alt + N</span>
             </div>
-            {/* Center icon */}
             <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all duration-200 group-hover:border-zinc-600 group-hover:text-zinc-300">
                 <IconPlus size={22} strokeWidth={1.6} />
@@ -159,7 +263,6 @@ function AddGameEntry({
     )
   }
 
-  // --- Tiles ---
   if (view === "tiles") {
     return (
       <button
@@ -168,13 +271,11 @@ function AddGameEntry({
         type="button"
         onClick={onAddClick}
       >
-        {/* Left icon panel */}
         <div className="flex h-full items-center justify-center rounded-[1.2rem] border border-zinc-800 bg-zinc-950">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 text-zinc-500 transition-all duration-200 group-hover:border-zinc-600 group-hover:text-zinc-300">
             <IconPlus size={22} strokeWidth={1.6} />
           </div>
         </div>
-        {/* Right info */}
         <div className="flex min-w-0 flex-col justify-center gap-2 py-2">
           <div>
             <span className="text-[9px] font-bold tracking-[0.24em] text-zinc-600 uppercase">
@@ -195,7 +296,6 @@ function AddGameEntry({
     )
   }
 
-  // --- List ---
   if (view === "list") {
     return (
       <button
@@ -224,7 +324,6 @@ function AddGameEntry({
     )
   }
 
-  // --- Details ---
   return (
     <button
       aria-label="Add New Game"
@@ -243,12 +342,12 @@ function AddGameEntry({
           <p className="mt-0.5 text-[10px] text-zinc-600">New library entry</p>
         </div>
       </div>
-      <span className="mt-2 text-xs text-zinc-600 md:mt-0">—</span>
-      <span className="hidden text-xs text-zinc-600 md:block">—</span>
-      <span className="hidden text-xs text-zinc-600 md:block">—</span>
-      <span className="hidden text-xs text-zinc-600 md:block">—</span>
-      <span className="hidden text-xs text-zinc-600 md:block">—</span>
-      <span className="hidden text-xs font-medium text-zinc-500 md:block">—</span>
+      <span className="mt-2 text-xs text-zinc-600 md:mt-0">â€”</span>
+      <span className="hidden text-xs text-zinc-600 md:block">â€”</span>
+      <span className="hidden text-xs text-zinc-600 md:block">â€”</span>
+      <span className="hidden text-xs text-zinc-600 md:block">â€”</span>
+      <span className="hidden text-xs text-zinc-600 md:block">â€”</span>
+      <span className="hidden text-xs font-medium text-zinc-500 md:block">â€”</span>
       <span className="mt-2 inline-flex justify-end text-right md:mt-0">
         <span className="rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-0.5 text-[10px] font-medium text-zinc-500">
           Alt + N

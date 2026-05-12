@@ -4,70 +4,34 @@ import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import { BookmarkPlus, Check, Loader2, BookmarkCheck } from "lucide-react";
 import {
-  listPlaylists,
-  getPlaylist,
   addGameToPlaylist,
   removeGameFromPlaylist,
-  PlaylistSummary,
 } from "@/lib/services/playlist";
+import { usePlaylistContext } from "@/components/contexts/PlaylistContext";
 
 type Props = {
   gameId: string;
 };
 
 export function AddToPlaylistButton({ gameId }: Props) {
+  const { playlists, playlistIdsByGameId, refreshPlaylists, isLoading } =
+    usePlaylistContext();
   const [isOpen, setIsOpen] = useState(false);
-  const [playlists, setPlaylists] = useState<PlaylistSummary[]>([]);
-  const [linkedIds, setLinkedIds] = useState<Set<string>>(new Set()); // playlists that already contain this game
   const [adding, setAdding] = useState<string | null>(null);
   const [added, setAdded] = useState<string | null>(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-  const [isLoading, setIsLoading] = useState(false);
+  const [optimisticLinkedIds, setOptimisticLinkedIds] = useState<Set<string>>(
+    new Set()
+  );
 
   const btnRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // When dropdown opens or component mounts: (1) fetch playlists, (2) check which ones contain this game
-  const loadData = async () => {
-    // Only set loading if not already loaded or if opening dropdown
-    setIsLoading(true);
-    try {
-      const summaries = await listPlaylists();
-      setPlaylists(summaries);
-
-      // Check membership concurrently
-      const results = await Promise.allSettled(
-        summaries.map((p) => getPlaylist(p.id!))
-      );
-
-      const alreadyIn = new Set<string>();
-      results.forEach((result, i) => {
-        if (result.status === "fulfilled") {
-          const games = (result.value.games ?? []) as Array<{ id?: string }>;
-          if (games.some((g) => g?.id === gameId)) {
-            alreadyIn.add(summaries[i].id!);
-          }
-        }
-      });
-      setLinkedIds(alreadyIn);
-    } catch (err) {
-      console.error("Failed to load playlist data", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Load initial state on mount
   useEffect(() => {
-    loadData();
-  }, [gameId]);
+    setOptimisticLinkedIds(new Set(playlistIdsByGameId[gameId] ?? []));
+  }, [gameId, playlistIdsByGameId]);
 
-  // Listen for external playlist updates (e.g., when a new playlist is created elsewhere)
-  useEffect(() => {
-    const handler = () => loadData();
-    window.addEventListener("playlist-updated", handler);
-    return () => window.removeEventListener("playlist-updated", handler);
-  }, [gameId]);
+  const linkedIds = optimisticLinkedIds;
 
   const openDropdown = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -110,22 +74,21 @@ export function AddToPlaylistButton({ gameId }: Props) {
     try {
       if (isAlready) {
         await removeGameFromPlaylist(playlistId, gameId);
-        setLinkedIds((prev) => {
+        setOptimisticLinkedIds((prev) => {
           const next = new Set(prev);
           next.delete(playlistId);
           return next;
         });
       } else {
         await addGameToPlaylist(playlistId, gameId);
-        setLinkedIds((prev) => new Set([...prev, playlistId]));
+        setOptimisticLinkedIds((prev) => new Set([...prev, playlistId]));
         setAdded(playlistId);
         setTimeout(() => setAdded(null), 800);
       }
-      
-      // Notify PlaylistSelector to update counts
-      window.dispatchEvent(new Event("playlist-updated"));
+      await refreshPlaylists();
     } catch (err) {
       console.error("Failed to toggle game in playlist", err);
+      setOptimisticLinkedIds(new Set(playlistIdsByGameId[gameId] ?? []));
     } finally {
       setAdding(null);
     }

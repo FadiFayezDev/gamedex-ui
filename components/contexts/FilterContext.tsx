@@ -30,6 +30,9 @@ type FilterContextType = {
   refreshOptions: (type?: "genres" | "platforms" | "companies" | "modManagers" | "tags") => Promise<void>;
 };
 
+type FilterOptions = FilterContextType["options"]
+type FilterOptionKey = keyof FilterOptions
+
 export const FilterContext = createContext<FilterContextType>({
   filterModel: defaultFilterModel,
   setFilterModel: () => { },
@@ -59,7 +62,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     tags: [],
   });
 
-  const refreshOptions = useCallback(async (type?: "genres" | "platforms" | "companies" | "modManagers" | "tags") => {
+  const refreshOptions = useCallback(async (type?: FilterOptionKey) => {
     try {
       if (!type) {
         const [g, p, c, m, t] = await Promise.all([
@@ -77,15 +80,33 @@ export function FilterProvider({ children }: { children: ReactNode }) {
           tags: t,
         });
       } else {
-        let newData: any[] = [];
         switch (type) {
-          case "genres": newData = await fetchGenresData(); break;
-          case "platforms": newData = await fetchPlatformsData(); break;
-          case "companies": newData = await fetchCompaniesData(); break;
-          case "modManagers": newData = await fetchModManagersData(); break;
-          case "tags": newData = await fetchTagsData(); break;
+          case "genres": {
+            const genres = await fetchGenresData();
+            setOptions((prev) => ({ ...prev, genres }));
+            break;
+          }
+          case "platforms": {
+            const platforms = await fetchPlatformsData();
+            setOptions((prev) => ({ ...prev, platforms }));
+            break;
+          }
+          case "companies": {
+            const companies = await fetchCompaniesData();
+            setOptions((prev) => ({ ...prev, companies }));
+            break;
+          }
+          case "modManagers": {
+            const modManagers = await fetchModManagersData();
+            setOptions((prev) => ({ ...prev, modManagers }));
+            break;
+          }
+          case "tags": {
+            const tags = await fetchTagsData();
+            setOptions((prev) => ({ ...prev, tags }));
+            break;
+          }
         }
-        setOptions(prev => ({ ...prev, [type]: newData }));
       }
     } catch (err) {
       console.error("Failed to refresh filter options:", err);
@@ -94,8 +115,38 @@ export function FilterProvider({ children }: { children: ReactNode }) {
 
   // Initial load
   useEffect(() => {
-    refreshOptions();
-  }, [refreshOptions]);
+    let isActive = true;
+
+    const loadInitialOptions = async () => {
+      try {
+        const [genres, platforms, companies, modManagers, tags] = await Promise.all([
+          fetchGenresData(),
+          fetchPlatformsData(),
+          fetchCompaniesData(),
+          fetchModManagersData(),
+          fetchTagsData(),
+        ]);
+
+        if (!isActive) return;
+
+        setOptions({
+          genres,
+          platforms,
+          companies,
+          modManagers,
+          tags,
+        });
+      } catch (err) {
+        console.error("Failed to refresh filter options:", err);
+      }
+    };
+
+    void loadInitialOptions();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   return (
     <FilterContext.Provider value={{ filterModel, setFilterModel, options, refreshOptions }}>

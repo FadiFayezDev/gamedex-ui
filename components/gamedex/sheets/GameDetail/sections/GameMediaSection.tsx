@@ -13,6 +13,7 @@ import {
   getAgeRatingLabel,
   resolveMediaAssetUrl,
   type GameSectionProps,
+  type MediaAssetFormValues,
 } from "../gameDetail.shared"
 import { useGameMedia } from "../hooks/useGameMedia"
 
@@ -56,7 +57,7 @@ export function GameMediaSection({
   return (
     <>
       <div id="sec-media" className="space-y-8">
-        <div className="relative -mx-6 -mt-6 h-64 overflow-hidden rounded-b-3xl border-b border-zinc-800/80">
+        <div className="relative -mx-6 -mt-6 h-64 overflow-hidden border-b border-zinc-800/80">
           {showBgTrailer ? (
             <video
               ref={bgVideoRef}
@@ -233,7 +234,7 @@ export function GameMediaSection({
           isCollapsed={mediaCollapsed}
           onToggle={() => setMediaCollapsed(!mediaCollapsed)}
           action={
-            <AddFormToggle
+            <AddFormToggle<MediaAssetFormValues>
               fields={mediaFieldConfigs}
               onSave={handleAddMediaAsset}
             />

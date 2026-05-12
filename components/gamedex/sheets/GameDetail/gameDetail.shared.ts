@@ -10,11 +10,67 @@ export type PickerEntity = {
   name: string
 }
 
-export type FormFieldConfig = {
-  key: string
+export type AddFormValue = string | File | undefined
+export type AddFormValues = Record<string, AddFormValue>
+
+export type FormFieldConfig<TKey extends string = string> = {
+  key: TKey
   placeholder: string
   type?: "text" | "number" | "date" | "file"
   options?: { value: string; label: string }[]
+}
+
+export type MissionFormValues = {
+  title: string
+  description: string
+}
+
+export type AlbumFormValues = {
+  title: string
+  releaseDate: string
+}
+
+export type SongFormValues = {
+  title: string
+  trackNumber: string
+  durationSeconds: string
+}
+
+export type CharacterFormValues = {
+  name: string
+  role: string
+}
+
+export type DlcFormValues = {
+  title: string
+  releaseDate: string
+}
+
+export type PerfProfileFormValues = {
+  resolution: string
+  targetFps: string
+  settingsPreset: string
+}
+
+export type RequirementFormValues = {
+  type: string
+  os: string
+  cpu: string
+  gpu: string
+  ramGb: string
+  storageBytes: string
+  additionalNotes: string
+}
+
+export type ControlFormValues = {
+  device: string
+  action: string
+  key: string
+}
+
+export type MediaAssetFormValues = {
+  type: string
+  file?: File
 }
 
 export type GameSectionProps = {
@@ -34,39 +90,39 @@ export const AGE_RATING_OPTIONS = [
   { value: "6", label: "RP" },
 ]
 
-export const MISSION_FIELDS: FormFieldConfig[] = [
+export const MISSION_FIELDS = [
   { key: "title", placeholder: "Mission title..." },
   { key: "description", placeholder: "Description (optional)..." },
-]
+] satisfies FormFieldConfig<keyof MissionFormValues>[]
 
-export const ALBUM_FIELDS: FormFieldConfig[] = [
+export const ALBUM_FIELDS = [
   { key: "title", placeholder: "Album title..." },
   { key: "releaseDate", placeholder: "Release date...", type: "date" },
-]
+] satisfies FormFieldConfig<keyof AlbumFormValues>[]
 
-export const SONG_FIELDS: FormFieldConfig[] = [
+export const SONG_FIELDS = [
   { key: "title", placeholder: "Song title..." },
   { key: "trackNumber", placeholder: "Track #", type: "number" },
   { key: "durationSeconds", placeholder: "Duration (sec)", type: "number" },
-]
+] satisfies FormFieldConfig<keyof SongFormValues>[]
 
-export const CHARACTER_FIELDS: FormFieldConfig[] = [
+export const CHARACTER_FIELDS = [
   { key: "name", placeholder: "Character name..." },
   { key: "role", placeholder: "Role (e.g. Protagonist)..." },
-]
+] satisfies FormFieldConfig<keyof CharacterFormValues>[]
 
-export const DLC_FIELDS: FormFieldConfig[] = [
+export const DLC_FIELDS = [
   { key: "title", placeholder: "DLC title..." },
   { key: "releaseDate", placeholder: "Release date", type: "date" },
-]
+] satisfies FormFieldConfig<keyof DlcFormValues>[]
 
-export const PERF_PROFILE_FIELDS: FormFieldConfig[] = [
+export const PERF_PROFILE_FIELDS = [
   { key: "resolution", placeholder: "Resolution (e.g. 1080p)..." },
   { key: "targetFps", placeholder: "Target FPS (e.g. 60)", type: "number" },
   { key: "settingsPreset", placeholder: "Settings preset (e.g. High)..." },
-]
+] satisfies FormFieldConfig<keyof PerfProfileFormValues>[]
 
-export const REQUIREMENT_FIELDS: FormFieldConfig[] = [
+export const REQUIREMENT_FIELDS = [
   {
     key: "type",
     placeholder: "Type",
@@ -86,9 +142,9 @@ export const REQUIREMENT_FIELDS: FormFieldConfig[] = [
     type: "number",
   },
   { key: "additionalNotes", placeholder: "Additional notes..." },
-]
+] satisfies FormFieldConfig<keyof RequirementFormValues>[]
 
-export const CONTROL_FIELDS: FormFieldConfig[] = [
+export const CONTROL_FIELDS = [
   {
     key: "device",
     placeholder: "Device (e.g. Keyboard)...",
@@ -193,9 +249,9 @@ export const CONTROL_FIELDS: FormFieldConfig[] = [
       { value: "Gamepad: D-Pad Right", label: "Gamepad: D-Pad Right" },
     ],
   },
-]
+] satisfies FormFieldConfig<keyof ControlFormValues>[]
 
-export const MEDIA_ASSET_FIELDS: FormFieldConfig[] = [
+export const MEDIA_ASSET_FIELDS = [
   {
     key: "type",
     placeholder: "Type",
@@ -206,7 +262,7 @@ export const MEDIA_ASSET_FIELDS: FormFieldConfig[] = [
     ],
   },
   { key: "file", placeholder: "Select File...", type: "file" },
-]
+] satisfies FormFieldConfig<keyof MediaAssetFormValues>[]
 
 export const formatDate = (iso: string | null) =>
   iso

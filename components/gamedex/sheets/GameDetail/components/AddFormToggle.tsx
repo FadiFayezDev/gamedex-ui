@@ -1,14 +1,17 @@
 import { Plus } from "lucide-react"
-import { AddForm } from "./AddForm"
 import { useState } from "react"
+import { AddForm } from "./AddForm"
+import type { AddFormValues, FormFieldConfig } from "../gameDetail.shared"
 
-export function AddFormToggle({
+type AddFormToggleProps<TValues extends AddFormValues> = {
+  fields: FormFieldConfig<Extract<keyof TValues, string>>[]
+  onSave: (values: TValues) => Promise<void>
+}
+
+export function AddFormToggle<TValues extends AddFormValues>({
   fields,
   onSave,
-}: {
-  fields: FormField[]
-  onSave: (values: any) => Promise<void>
-}) {
+}: AddFormToggleProps<TValues>) {
   const [active, setActive] = useState(false)
 
   if (!active) {
@@ -25,8 +28,8 @@ export function AddFormToggle({
   return (
     <AddForm
       fields={fields}
-      onSave={async (v) => {
-        await onSave(v)
+      onSave={async (values) => {
+        await onSave(values)
         setActive(false)
       }}
       onCancel={() => setActive(false)}

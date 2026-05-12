@@ -2,13 +2,9 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { ChevronDown, Plus, Trash2, Check, X, Loader2 } from "lucide-react";
-import {
-  PlaylistSummary,
-  listPlaylists,
-  createPlaylist,
-  deletePlaylist,
-} from "@/lib/services/playlist";
+import { createPlaylist, deletePlaylist } from "@/lib/services/playlist";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { usePlaylistContext } from "@/components/contexts/PlaylistContext";
 
 type Props = {
   selectedPlaylistId: string | null;
@@ -16,8 +12,8 @@ type Props = {
 };
 
 export function PlaylistSelector({ selectedPlaylistId, onSelect }: Props) {
+  const { playlists, refreshPlaylists } = usePlaylistContext();
   const [isOpen, setIsOpen] = useState(false);
-  const [playlists, setPlaylists] = useState<PlaylistSummary[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -27,26 +23,12 @@ export function PlaylistSelector({ selectedPlaylistId, onSelect }: Props) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchPlaylists = async () => {
-    try {
-      const data = await listPlaylists();
-      setPlaylists(data);
-    } catch (error) {
-      console.error("Failed to load playlists", error);
-    }
-  };
-
   // Fetch on mount and whenever dropdown opens
   useEffect(() => {
-    fetchPlaylists();
-  }, [isOpen]);
-
-  // Listen for external playlist updates (e.g., game added from GameCard)
-  useEffect(() => {
-    const handler = () => fetchPlaylists();
-    window.addEventListener("playlist-updated", handler);
-    return () => window.removeEventListener("playlist-updated", handler);
-  }, []);
+    if (isOpen) {
+      void refreshPlaylists();
+    }
+  }, [isOpen, refreshPlaylists]);
 
   // Focus name input when form opens
   useEffect(() => {
@@ -79,8 +61,7 @@ export function PlaylistSelector({ selectedPlaylistId, onSelect }: Props) {
       setNewName("");
       setNewDescription("");
       setShowCreateForm(false);
-      await fetchPlaylists();
-      window.dispatchEvent(new Event("playlist-updated"));
+      await refreshPlaylists();
     } catch (error) {
       console.error("Failed to create playlist", error);
     } finally {
@@ -99,8 +80,7 @@ export function PlaylistSelector({ selectedPlaylistId, onSelect }: Props) {
     try {
       await deletePlaylist(confirmDelete.id);
       if (selectedPlaylistId === confirmDelete.id) onSelect(null);
-      await fetchPlaylists();
-      window.dispatchEvent(new Event("playlist-updated"));
+      await refreshPlaylists();
     } catch (error) {
       console.error("Failed to delete playlist", error);
     } finally {

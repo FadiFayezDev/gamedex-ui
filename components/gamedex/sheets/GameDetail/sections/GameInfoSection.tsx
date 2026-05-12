@@ -36,6 +36,14 @@ import {
   formatDuration,
   getAgeRatingLabel,
   MISSION_FIELDS,
+  type AlbumFormValues,
+  type CharacterFormValues,
+  type ControlFormValues,
+  type DlcFormValues,
+  type MissionFormValues,
+  type PerfProfileFormValues,
+  type RequirementFormValues,
+  type SongFormValues,
   type GameSectionProps,
 } from "../gameDetail.shared"
 import { useGameDetails } from "../hooks/useGameDetails"
@@ -242,7 +250,12 @@ export function GameInfoSection(props: GameSectionProps) {
       <Section
         icon={Map}
         title="Missions"
-        action={<AddFormToggle fields={MISSION_FIELDS} onSave={handleAddMission} />}
+        action={
+          <AddFormToggle<MissionFormValues>
+            fields={MISSION_FIELDS}
+            onSave={handleAddMission}
+          />
+        }
       >
         {game.missions.length === 0 ? (
           <p className="text-xs text-zinc-600 italic">No missions</p>
@@ -319,7 +332,10 @@ export function GameInfoSection(props: GameSectionProps) {
         icon={Users}
         title="Characters"
         action={
-          <AddFormToggle fields={CHARACTER_FIELDS} onSave={handleAddCharacter} />
+          <AddFormToggle<CharacterFormValues>
+            fields={CHARACTER_FIELDS}
+            onSave={handleAddCharacter}
+          />
         }
       >
         {game.characterProfiles.length === 0 ? (
@@ -359,7 +375,12 @@ export function GameInfoSection(props: GameSectionProps) {
       <Section
         icon={Package}
         title="DLCs"
-        action={<AddFormToggle fields={DLC_FIELDS} onSave={handleAddDlc} />}
+        action={
+          <AddFormToggle<DlcFormValues>
+            fields={DLC_FIELDS}
+            onSave={handleAddDlc}
+          />
+        }
       >
         {game.dlcs.length === 0 ? (
           <p className="text-xs text-zinc-600 italic">No DLCs</p>
@@ -393,7 +414,12 @@ export function GameInfoSection(props: GameSectionProps) {
       <Section
         icon={Music}
         title="Music Albums"
-        action={<AddFormToggle fields={ALBUM_FIELDS} onSave={handleAddAlbum} />}
+        action={
+          <AddFormToggle<AlbumFormValues>
+            fields={ALBUM_FIELDS}
+            onSave={handleAddAlbum}
+          />
+        }
       >
         {game.albums.length === 0 ? (
           <p className="text-xs text-zinc-600 italic">No Albums</p>
@@ -492,9 +518,11 @@ export function GameInfoSection(props: GameSectionProps) {
                               ))}
 
                           <div className="mt-3 border-t border-zinc-800/40 pt-2">
-                            <AddFormToggle
+                            <AddFormToggle<SongFormValues>
                               fields={SONG_FIELDS}
-                              onSave={(values) => handleAddSong(album.id, values)}
+                              onSave={(values: SongFormValues) =>
+                                handleAddSong(album.id, values)
+                              }
                             />
                           </div>
                         </div>
@@ -514,7 +542,7 @@ export function GameInfoSection(props: GameSectionProps) {
         icon={Cpu}
         title="Performance Profiles"
         action={
-          <AddFormToggle
+          <AddFormToggle<PerfProfileFormValues>
             fields={PERF_PROFILE_FIELDS}
             onSave={handleAddPerfProfile}
           />
@@ -559,7 +587,7 @@ export function GameInfoSection(props: GameSectionProps) {
         icon={HardDrive}
         title="System Requirements"
         action={
-          <AddFormToggle
+          <AddFormToggle<RequirementFormValues>
             fields={REQUIREMENT_FIELDS}
             onSave={handleAddRequirement}
           />
@@ -611,7 +639,7 @@ export function GameInfoSection(props: GameSectionProps) {
         icon={Gamepad2}
         title="Control Mappings"
         action={
-          <AddFormToggle
+          <AddFormToggle<ControlFormValues>
             fields={CONTROL_FIELDS}
             onSave={handleAddControlMapping}
           />

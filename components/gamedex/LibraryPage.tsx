@@ -28,6 +28,7 @@ import { sendFilterData, importGame, normalizeGame } from "@/lib/services/games"
 import { PlaylistSelector } from "@/components/gamedex/PlaylistSelector"
 import { getPlaylist } from "@/lib/services/playlist"
 import { cn } from "@/lib/utils"
+import { usePlaylistContext } from "@/components/contexts/PlaylistContext"
 
 const defaultFilters: LibraryFilters = {
   query: "",
@@ -41,6 +42,7 @@ const defaultFilters: LibraryFilters = {
 
 export function LibraryPage() {
   const { filterModel, refreshOptions } = useContext(FilterContext)
+  const { version: playlistsVersion } = usePlaylistContext()
   const [games, setGames] = React.useState<Game[]>([])
   const [filters, setFilters] = React.useState<LibraryFilters>(defaultFilters)
   const [viewMode, setViewMode] = React.useState<ViewMode>("grid")
@@ -53,6 +55,10 @@ export function LibraryPage() {
   const [companiesSheetOpen, setCompaniesSheetOpen] = React.useState(false)
   const [modManagerSheetOpen, setModManagerSheetOpen] = React.useState(false)
   const [tagsSheetOpen, setTagsSheetOpen] = React.useState(false)
+  const activeRequestRef = React.useRef<AbortController | null>(null)
+  const requestIdRef = React.useRef(0)
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null)
+  const selectedPlaylistVersion = filters.playlistId ? playlistsVersion : 0
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -70,32 +76,53 @@ export function LibraryPage() {
   }, [])
 
   const fetchGames = React.useCallback(async () => {
+    activeRequestRef.current?.abort()
+    const controller = new AbortController()
+    const requestId = ++requestIdRef.current
+    activeRequestRef.current = controller
     setIsLoading(true)
+
     try {
       if (filters.playlistId) {
-        const playlist = await getPlaylist(filters.playlistId)
+        const playlist = await getPlaylist(filters.playlistId, controller.signal)
         const playlistGames = (playlist.games ?? []).map((game) =>
           normalizeGame(game)
         )
+        if (controller.signal.aborted || requestId !== requestIdRef.current) {
+          return
+        }
         setGames(playlistGames)
       } else {
-        const gamesData = await sendFilterData(filterModel)
+        const gamesData = await sendFilterData(filterModel, controller.signal)
+        if (controller.signal.aborted || requestId !== requestIdRef.current) {
+          return
+        }
         setGames(gamesData)
       }
     } catch (error) {
+      if (controller.signal.aborted || requestId !== requestIdRef.current) {
+        return
+      }
       console.error("Failed to fetch games:", error)
       setGames([])
     } finally {
-      setIsLoading(false)
+      if (!controller.signal.aborted && requestId === requestIdRef.current) {
+        setIsLoading(false)
+      }
+      if (activeRequestRef.current === controller) {
+        activeRequestRef.current = null
+      }
     }
   }, [filterModel, filters.playlistId])
 
   useEffect(() => {
-    fetchGames();
-    const handler = () => fetchGames();
-    window.addEventListener("playlist-updated", handler);
-    return () => window.removeEventListener("playlist-updated", handler);
-  }, [fetchGames]);
+    void fetchGames()
+
+    return () => {
+      activeRequestRef.current?.abort()
+      activeRequestRef.current = null
+    }
+  }, [fetchGames, selectedPlaylistVersion])
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
@@ -246,7 +273,10 @@ export function LibraryPage() {
             onImportClick={() => fileInputRef.current?.click()}
           />
 
-          <div className="flex-1 overflow-y-auto relative">
+          <div
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto relative"
+          >
             {/* Loading Indicator Bar */}
             {isLoading && (
               <div className="absolute top-0 left-0 right-0 z-50 h-[2px] overflow-hidden bg-sky-500/10">
@@ -276,6 +306,7 @@ export function LibraryPage() {
                 view={viewMode}
                 onAddClick={() => setIsSheetOpen(true)}
                 onUpdateGame={handleUpdateGame}
+                scrollContainerRef={scrollContainerRef}
               />
             </div>
           </div>
